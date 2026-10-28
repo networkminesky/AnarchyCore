@@ -1,5 +1,6 @@
 plugins {
     id("java-library")
+    id("maven-publish")
 }
 
 java {
@@ -12,4 +13,13 @@ dependencies {
 
 tasks.jar {
     archiveBaseName.set("AnarchyCore-API")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            artifactId = "AnarchyCore-API"
+        }
+    }
 }
