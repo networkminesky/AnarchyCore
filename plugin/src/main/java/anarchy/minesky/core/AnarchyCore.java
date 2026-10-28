@@ -5,6 +5,7 @@ import anarchy.minesky.core.impl.feedback.FeedbackListener;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.locator.LocatorManager;
 import anarchy.minesky.core.listener.PlayerEvents;
+import anarchy.minesky.core.listener.PluginCommandBlockListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class AnarchyCore extends JavaPlugin {
@@ -28,6 +29,7 @@ public final class AnarchyCore extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FeedbackListener(feedbackManager), this);
 
         getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
+        getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(), this);
     }
 
     @Override

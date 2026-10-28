@@ -8,9 +8,9 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody;
 import io.papermc.paper.registry.data.dialog.input.DialogInput;
 import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import anarchy.minesky.core.api.dialogapi.DialogButton;
 import anarchy.minesky.core.api.dialogapi.DialogInputField;
@@ -35,6 +35,11 @@ public final class JavaDialogRenderer {
         if (plugin == null || !plugin.isEnabled() || player == null || !player.isOnline() || dialog == null) {
             return;
         }
+
+        ClickCallback.Options callbackOptions = ClickCallback.Options.builder()
+                .uses(1)
+                .lifetime(ClickCallback.DEFAULT_LIFETIME)
+                .build();
 
         List<DialogBody> bodies = new ArrayList<>();
         for (Component c : dialog.getBody()) {
@@ -71,41 +76,51 @@ public final class JavaDialogRenderer {
             }
         }
 
-        List<ActionButton> actionButtons = new ArrayList<>();
-        ClickCallback.Options callbackOptions = ClickCallback.Options.builder()
-                .uses(1)
-                .lifetime(ClickCallback.DEFAULT_LIFETIME)
-                .build();
-
         List<DialogButton> buttons = dialog.getButtons();
         if (buttons.isEmpty()) {
             buttons = List.of(DialogButton.of(Component.text("Fechar", NamedTextColor.GRAY), p -> {}));
         }
 
-        for (DialogButton btn : buttons) {
-            DialogAction action = DialogAction.customClick((view, audience) -> {
-                if (!(audience instanceof Player p)) return;
-                if (!plugin.isEnabled()) return;
-                JavaDialogResponse response = new JavaDialogResponse(p, view);
-                p.getScheduler().run(plugin, task -> {
-                    if (!plugin.isEnabled()) return;
-                    if (dialog.getSubmitAction() != null) {
-                        dialog.getSubmitAction().accept(p, response);
-                    }
-                    btn.click(p, response);
-                }, null);
-            }, callbackOptions);
+        boolean inlineButtons = dialog.isButtonsBeforeBody() && !dialog.hasInputs() && !buttons.isEmpty();
+        if (inlineButtons) {
+            bodies.add(0, DialogBody.plainMessage(buildInlineButtonRow(plugin, dialog, buttons, callbackOptions)));
+        }
 
-            actionButtons.add(ActionButton.create(
-                    btn.getLabel(),
-                    btn.getTooltip(),
-                    btn.getWidth(),
-                    action
-            ));
+        List<ActionButton> actionButtons = new ArrayList<>();
+        if (!inlineButtons) {
+            for (DialogButton btn : buttons) {
+                DialogAction action = DialogAction.customClick((view, audience) -> {
+                    if (!(audience instanceof Player p)) {
+                        return;
+                    }
+                    if (!plugin.isEnabled()) {
+                        return;
+                    }
+                    JavaDialogResponse response = new JavaDialogResponse(p, view);
+                    p.getScheduler().run(plugin, task -> {
+                        if (!plugin.isEnabled()) {
+                            return;
+                        }
+                        if (dialog.getSubmitAction() != null) {
+                            dialog.getSubmitAction().accept(p, response);
+                        }
+                        btn.click(p, response);
+                    }, null);
+                }, callbackOptions);
+
+                actionButtons.add(ActionButton.create(
+                        btn.getLabel(),
+                        btn.getTooltip(),
+                        btn.getWidth(),
+                        action
+                ));
+            }
         }
 
         DialogType dialogType;
-        if (actionButtons.size() == 1) {
+        if (inlineButtons) {
+            dialogType = DialogType.notice();
+        } else if (actionButtons.size() == 1) {
             dialogType = DialogType.notice(actionButtons.get(0));
         } else if (actionButtons.size() == 2 && !dialog.hasInputs()) {
             dialogType = DialogType.confirmation(actionButtons.get(0), actionButtons.get(1));
@@ -123,5 +138,37 @@ public final class JavaDialogRenderer {
         );
 
         player.showDialog(paperDialog);
+    }
+
+    private static Component buildInlineButtonRow(Plugin plugin, MineSkyDialog dialog, List<DialogButton> buttons,
+                                                  ClickCallback.Options callbackOptions) {
+        Component row = Component.empty();
+        for (int i = 0; i < buttons.size(); i++) {
+            if (i > 0) {
+                row = row.append(Component.text("   "));
+            }
+            DialogButton btn = buttons.get(i);
+            Component clickable = btn.getLabel().clickEvent(ClickEvent.callback(audience -> {
+                if (!(audience instanceof Player player)) {
+                    return;
+                }
+                if (!plugin.isEnabled()) {
+                    return;
+                }
+                JavaDialogResponse response = new JavaDialogResponse(player, null);
+                player.getScheduler().run(plugin, task -> {
+                    if (!plugin.isEnabled()) {
+                        return;
+                    }
+                    if (dialog.getSubmitAction() != null) {
+                        dialog.getSubmitAction().accept(player, response);
+                    }
+                    btn.click(player, response);
+                    player.closeDialog();
+                }, null);
+            }, callbackOptions));
+            row = row.append(clickable);
+        }
+        return row;
     }
 }

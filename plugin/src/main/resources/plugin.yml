@@ -8,3 +8,8 @@ softdepend:
   - floodgate
 
 folia-supported: true
+
+permissions:
+  anarchycore.admin:
+    description: Bypass AnarchyCore admin restrictions and plugin inspection commands
+    default: op

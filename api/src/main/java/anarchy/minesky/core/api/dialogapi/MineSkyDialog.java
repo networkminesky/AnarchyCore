@@ -24,6 +24,7 @@ public final class MineSkyDialog {
     private final List<DialogInputField<?>> inputs;
     private final List<DialogButton> buttons;
     private final boolean canCloseWithEscape;
+    private final boolean buttonsBeforeBody;
     private final @Nullable BiConsumer<Player, DialogResponse> submitAction;
     private final @Nullable Consumer<Player> closeAction;
 
@@ -34,6 +35,7 @@ public final class MineSkyDialog {
         this.inputs = List.copyOf(builder.inputs);
         this.buttons = List.copyOf(builder.buttons);
         this.canCloseWithEscape = builder.canCloseWithEscape;
+        this.buttonsBeforeBody = builder.buttonsBeforeBody;
         this.submitAction = builder.submitAction;
         this.closeAction = builder.closeAction;
     }
@@ -55,6 +57,7 @@ public final class MineSkyDialog {
     public List<DialogInputField<?>> getInputs() { return inputs; }
     public List<DialogButton> getButtons() { return buttons; }
     public boolean isCanCloseWithEscape() { return canCloseWithEscape; }
+    public boolean isButtonsBeforeBody() { return buttonsBeforeBody; }
     public @Nullable BiConsumer<Player, DialogResponse> getSubmitAction() { return submitAction; }
     public @Nullable Consumer<Player> getCloseAction() { return closeAction; }
     public boolean hasInputs() { return !inputs.isEmpty(); }
@@ -66,6 +69,7 @@ public final class MineSkyDialog {
         private final List<DialogInputField<?>> inputs = new ArrayList<>();
         private final List<DialogButton> buttons = new ArrayList<>();
         private boolean canCloseWithEscape = true;
+        private boolean buttonsBeforeBody = false;
         private BiConsumer<Player, DialogResponse> submitAction;
         private Consumer<Player> closeAction;
 
@@ -96,6 +100,15 @@ public final class MineSkyDialog {
 
         public Builder canCloseWithEscape(boolean escape) {
             this.canCloseWithEscape = escape;
+            return this;
+        }
+
+        /**
+         * Renderiza os botões no topo do diálogo (corpo), acima do texto.
+         * Necessário porque a Dialog API do Paper coloca {@code ActionButton} na parte inferior.
+         */
+        public Builder buttonsBeforeBody(boolean beforeBody) {
+            this.buttonsBeforeBody = beforeBody;
             return this;
         }
 

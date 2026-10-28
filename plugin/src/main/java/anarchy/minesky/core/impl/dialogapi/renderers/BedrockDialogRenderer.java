@@ -38,7 +38,7 @@ public final class BedrockDialogRenderer {
 
         if (dialog.hasInputs()) {
             renderCustomForm(plugin, player, fPlayer, dialog);
-        } else if (dialog.getButtons().size() == 2) {
+        } else if (dialog.getButtons().size() == 2 && !dialog.isButtonsBeforeBody()) {
             renderModalForm(plugin, player, fPlayer, dialog);
         } else {
             renderSimpleForm(plugin, player, fPlayer, dialog);
