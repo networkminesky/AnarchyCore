@@ -23,6 +23,7 @@ dependencies {
 
     implementation("com.zaxxer:HikariCP:6.2.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.3")
+    implementation("com.google.code.gson:gson:2.11.0")
 }
 
 tasks {
@@ -43,6 +44,7 @@ tasks {
                 .filter { file ->
                     file.name.contains("HikariCP", ignoreCase = true)
                             || file.name.contains("mariadb", ignoreCase = true)
+                            || file.name.contains("gson", ignoreCase = true)
                 }
                 .map { file -> if (file.isDirectory) file else zipTree(file) },
         )

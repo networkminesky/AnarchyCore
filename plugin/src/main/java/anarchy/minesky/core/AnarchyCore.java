@@ -32,6 +32,7 @@ import anarchy.minesky.core.impl.playerprefs.ConfigManager;
 import anarchy.minesky.core.impl.playerprefs.ConfigSettings;
 import anarchy.minesky.core.impl.playerprefs.PlayerConfigAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesRepository;
+import anarchy.minesky.core.impl.playerdata.PlayerDataAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import anarchy.minesky.core.listener.PlayerPreferencesListener;
 import anarchy.minesky.core.listener.PlayerEvents;
@@ -58,6 +59,7 @@ public final class AnarchyCore extends JavaPlugin {
     private DatabaseManager databaseManager;
     private PlayerPreferencesService playerPreferencesService;
     private PlayerConfigAPIImpl playerConfigApi;
+    private PlayerDataAPIImpl playerDataApi;
     private ConfigManager configManager;
     private ConfigSettings configSettings;
 
@@ -93,6 +95,8 @@ public final class AnarchyCore extends JavaPlugin {
         this.playerPreferencesService = new PlayerPreferencesService(preferencesRepository);
         this.playerConfigApi = new PlayerConfigAPIImpl(this, playerPreferencesService);
         this.playerConfigApi.register();
+        this.playerDataApi = new PlayerDataAPIImpl(this, databaseManager);
+        this.playerDataApi.register();
         this.configSettings = new ConfigSettings(this);
         this.configManager = new ConfigManager(this, messagesManager, feedbackManager, playerPreferencesService, configSettings);
 
@@ -112,7 +116,7 @@ public final class AnarchyCore extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
         getServer().getPluginManager().registerEvents(
-                new PlayerPreferencesListener(this, playerPreferencesService, configManager), this);
+                new PlayerPreferencesListener(this, playerPreferencesService, configManager, playerDataApi), this);
         getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.loadPlayer(p.getUniqueId()));
         getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(), this);
     }
@@ -195,6 +199,10 @@ public final class AnarchyCore extends JavaPlugin {
         return playerPreferencesService;
     }
 
+    public PlayerDataAPIImpl playerData() {
+        return playerDataApi;
+    }
+
     @Override
     public void onDisable() {
         if (feedbackManager != null) {
@@ -227,6 +235,11 @@ public final class AnarchyCore extends JavaPlugin {
             playerConfigApi.unregister();
             playerConfigApi = null;
         }
+        if (playerDataApi != null) {
+            playerDataApi.unregister();
+            playerDataApi = null;
+        }
+        playerDataApi = null;
         playerPreferencesService = null;
         configManager = null;
         configSettings = null;

@@ -81,12 +81,37 @@ public final class DatabaseManager {
         if (!isActive()) {
             return null;
         }
-        try (Connection connection = dataSource.getConnection()) {
-            return function.apply(connection);
+        try {
+            return querySyncThrowing(function);
         } catch (SQLException e) {
             plugin.getLogger().severe("Erro SQL: " + e.getMessage());
             return null;
         }
+    }
+
+    public <T> T querySyncThrowing(SqlFunction<T> function) throws SQLException {
+        if (!isActive()) {
+            throw new SQLException("Database inactive");
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            return function.apply(connection);
+        }
+    }
+
+    public <T> void queryAsync(SqlFunction<T> function, AsyncCallback<T> callback) {
+        if (!isActive()) {
+            callback.complete(null, new SQLException("Database inactive"));
+            return;
+        }
+        runAsync(() -> {
+            try {
+                T value = querySyncThrowing(function);
+                callback.complete(value, null);
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Erro SQL async: " + e.getMessage());
+                callback.complete(null, e);
+            }
+        });
     }
 
     public void withConnection(Consumer<Connection> consumer) {
@@ -123,6 +148,15 @@ public final class DatabaseManager {
                           INDEX idx_known_reverse (known_uuid, player_uuid)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_data (
+                          uuid CHAR(36) PRIMARY KEY,
+                          latest_nickname VARCHAR(16) NULL,
+                          data JSON NOT NULL,
+                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                          INDEX idx_latest_nickname (latest_nickname)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }
@@ -132,5 +166,10 @@ public final class DatabaseManager {
     @FunctionalInterface
     public interface SqlFunction<T> {
         T apply(Connection connection) throws SQLException;
+    }
+
+    @FunctionalInterface
+    public interface AsyncCallback<T> {
+        void complete(T value, SQLException error);
     }
 }

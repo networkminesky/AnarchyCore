@@ -1,6 +1,7 @@
 package anarchy.minesky.core.listener;
 
 import anarchy.minesky.core.AnarchyCoreBootstrap;
+import anarchy.minesky.core.api.playerdata.PlayerDataAPI;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import io.papermc.paper.connection.PlayerGameConnection;
@@ -17,16 +18,25 @@ public final class PlayerPreferencesListener implements Listener {
     private final Plugin plugin;
     private final PlayerPreferencesService prefs;
     private final ConfigManager config;
+    private final PlayerDataAPI playerData;
 
-    public PlayerPreferencesListener(Plugin plugin, PlayerPreferencesService prefs, ConfigManager config) {
+    public PlayerPreferencesListener(
+            Plugin plugin,
+            PlayerPreferencesService prefs,
+            ConfigManager config,
+            PlayerDataAPI playerData) {
         this.plugin = plugin;
         this.prefs = prefs;
         this.config = config;
+        this.playerData = playerData;
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         prefs.loadPlayer(event.getPlayer().getUniqueId());
+        if (playerData != null) {
+            playerData.touchPlayerAsync(event.getPlayer().getUniqueId(), event.getPlayer().getName());
+        }
     }
 
     @EventHandler
