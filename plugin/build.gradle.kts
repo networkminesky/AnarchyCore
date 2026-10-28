@@ -32,5 +32,8 @@ tasks {
 
     jar {
         archiveBaseName.set("AnarchyCore")
+        dependsOn(":api:classes")
+        from(project(":api").sourceSets.main.get().output)
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 }

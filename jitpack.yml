@@ -1,5 +1,9 @@
 jdk:
-  openjdk: 25
+  - openjdk25
+
+before_install:
+  - sdk install java 25.0.1-tem
+  - sdk use java 25.0.1-tem
 
 install:
   - ./gradlew -Pjitpack :api:publishToMavenLocal --no-daemon --stacktrace
