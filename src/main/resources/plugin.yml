@@ -1,0 +1,10 @@
+name: AnarchyCore
+version: '${version}'
+
+main: anarchy.minesky.core.AnarchyCore
+api-version: '26.3'
+load: POSTWORLD
+softdepend:
+  - floodgate
+
+folia-supported: true

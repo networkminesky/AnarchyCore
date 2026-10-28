@@ -1,0 +1,15 @@
+# =========================================================
+#             Configuração da LocatorAPI (Folia)
+# =========================================================
+
+# Mundos onde a Locator Bar ficará SEMPRE LIGADA por padrão.
+always-enabled-worlds: []
+
+# Mundos onde a Locator Bar ficará SEMPRE DESLIGADA por padrão.
+always-disabled-worlds: []
+
+# Modo para mundos não listados acima (ENABLED ou DISABLED)
+default-world-mode: "ENABLED"
+
+# Ativar mensagens de debug no console (útil para testes de pacotes)
+debug: false
