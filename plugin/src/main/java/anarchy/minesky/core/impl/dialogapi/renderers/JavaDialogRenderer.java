@@ -8,10 +8,12 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody;
 import io.papermc.paper.registry.data.dialog.input.DialogInput;
 import io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
+import io.papermc.paper.registry.data.dialog.type.MultiActionType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import anarchy.minesky.core.api.dialogapi.DialogBodyItem;
 import anarchy.minesky.core.api.dialogapi.DialogButton;
 import anarchy.minesky.core.api.dialogapi.DialogInputField;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
@@ -42,11 +44,9 @@ public final class JavaDialogRenderer {
                 .build();
 
         List<DialogBody> bodies = new ArrayList<>();
+        appendBodyItems(bodies, dialog);
         for (Component c : dialog.getBody()) {
             bodies.add(DialogBody.plainMessage(c));
-        }
-        for (ItemStack item : dialog.getItems()) {
-            bodies.add(DialogBody.item(item).build());
         }
 
         List<DialogInput> inputs = new ArrayList<>();
@@ -81,9 +81,17 @@ public final class JavaDialogRenderer {
             buttons = List.of(DialogButton.of(Component.text("Fechar", NamedTextColor.GRAY), p -> {}));
         }
 
-        boolean inlineButtons = dialog.isButtonsBeforeBody() && !dialog.hasInputs() && !buttons.isEmpty();
-        if (inlineButtons) {
+        boolean inlineBefore = dialog.isButtonsBeforeBody() && !dialog.hasInputs() && !buttons.isEmpty();
+        boolean inlineAfter = dialog.isButtonsAfterBody() && !dialog.hasInputs() && !buttons.isEmpty();
+        boolean inlineButtons = inlineBefore || inlineAfter;
+
+        if (inlineBefore) {
             bodies.add(0, DialogBody.plainMessage(buildInlineButtonRow(plugin, dialog, buttons, callbackOptions)));
+        }
+        if (inlineAfter) {
+            for (DialogButton btn : buttons) {
+                bodies.add(DialogBody.plainMessage(buildInlineButton(plugin, dialog, btn, callbackOptions)));
+            }
         }
 
         List<ActionButton> actionButtons = new ArrayList<>();
@@ -105,6 +113,9 @@ public final class JavaDialogRenderer {
                             dialog.getSubmitAction().accept(p, response);
                         }
                         btn.click(p, response);
+                        if (btn.isCloseOnClick()) {
+                            p.closeDialog();
+                        }
                     }, null);
                 }, callbackOptions);
 
@@ -120,6 +131,10 @@ public final class JavaDialogRenderer {
         DialogType dialogType;
         if (inlineButtons) {
             dialogType = DialogType.notice();
+        } else if (dialog.getMultiActionColumns() > 0) {
+            MultiActionType.Builder multiBuilder = DialogType.multiAction(actionButtons);
+            multiBuilder.columns(dialog.getMultiActionColumns());
+            dialogType = multiBuilder.build();
         } else if (actionButtons.size() == 1) {
             dialogType = DialogType.notice(actionButtons.get(0));
         } else if (actionButtons.size() == 2 && !dialog.hasInputs()) {
@@ -140,6 +155,42 @@ public final class JavaDialogRenderer {
         player.showDialog(paperDialog);
     }
 
+    private static void appendBodyItems(List<DialogBody> bodies, MineSkyDialog dialog) {
+        for (DialogBodyItem spec : dialog.getBodyItems()) {
+            bodies.add(DialogBody.item(spec.item())
+                    .width(spec.width())
+                    .height(spec.height())
+                    .showDecorations(spec.showDecorations())
+                    .showTooltip(spec.showTooltip())
+                    .build());
+        }
+    }
+
+    private static Component buildInlineButton(Plugin plugin, MineSkyDialog dialog, DialogButton btn,
+                                               ClickCallback.Options callbackOptions) {
+        return btn.getLabel().clickEvent(ClickEvent.callback(audience -> {
+            if (!(audience instanceof Player player)) {
+                return;
+            }
+            if (!plugin.isEnabled()) {
+                return;
+            }
+            JavaDialogResponse response = new JavaDialogResponse(player, null);
+            player.getScheduler().run(plugin, task -> {
+                if (!plugin.isEnabled()) {
+                    return;
+                }
+                if (dialog.getSubmitAction() != null) {
+                    dialog.getSubmitAction().accept(player, response);
+                }
+                btn.click(player, response);
+                if (btn.isCloseOnClick()) {
+                    player.closeDialog();
+                }
+            }, null);
+        }, callbackOptions));
+    }
+
     private static Component buildInlineButtonRow(Plugin plugin, MineSkyDialog dialog, List<DialogButton> buttons,
                                                   ClickCallback.Options callbackOptions) {
         Component row = Component.empty();
@@ -147,27 +198,7 @@ public final class JavaDialogRenderer {
             if (i > 0) {
                 row = row.append(Component.text("   "));
             }
-            DialogButton btn = buttons.get(i);
-            Component clickable = btn.getLabel().clickEvent(ClickEvent.callback(audience -> {
-                if (!(audience instanceof Player player)) {
-                    return;
-                }
-                if (!plugin.isEnabled()) {
-                    return;
-                }
-                JavaDialogResponse response = new JavaDialogResponse(player, null);
-                player.getScheduler().run(plugin, task -> {
-                    if (!plugin.isEnabled()) {
-                        return;
-                    }
-                    if (dialog.getSubmitAction() != null) {
-                        dialog.getSubmitAction().accept(player, response);
-                    }
-                    btn.click(player, response);
-                    player.closeDialog();
-                }, null);
-            }, callbackOptions));
-            row = row.append(clickable);
+            row = row.append(buildInlineButton(plugin, dialog, buttons.get(i), callbackOptions));
         }
         return row;
     }

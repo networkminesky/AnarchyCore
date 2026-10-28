@@ -3,6 +3,7 @@ package anarchy.minesky.core.api.text;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Material;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +46,24 @@ public final class DialogComponentUtils {
             return MiniMessage.miniMessage().deserialize(input);
         } catch (Exception e) {
             return Component.text(input);
+        }
+    }
+
+    /**
+     * Sprite MiniMessage para ícones de material (blocos vs itens usam atlases diferentes).
+     */
+    public static Component materialIconComponent(Material material) {
+        if (material == null || material.isAir()) {
+            return Component.empty();
+        }
+        String key = material.getKey().getKey();
+        String miniMessage = material.isBlock()
+                ? "<sprite:blocks:block/" + key + ">"
+                : "<sprite:items:item/" + key + ">";
+        try {
+            return MiniMessage.miniMessage().deserialize(miniMessage);
+        } catch (Exception ignored) {
+            return Component.empty();
         }
     }
 

@@ -3,6 +3,7 @@ package anarchy.minesky.core.api;
 import anarchy.minesky.core.api.dialogapi.DialogAPI;
 import anarchy.minesky.core.api.feedback.FeedbackAPI;
 import anarchy.minesky.core.api.locator.LocatorAPI;
+import anarchy.minesky.core.api.playerconfig.PlayerConfigAPI;
 import org.bukkit.Bukkit;
 
 public final class MineSkyAPI {
@@ -21,7 +22,8 @@ public final class MineSkyAPI {
         }
         return ServiceProviders.isRegistered(DialogAPI.class, "anarchy.minesky.core.api.dialogapi.DialogAPI")
                 && ServiceProviders.isRegistered(LocatorAPI.class, "anarchy.minesky.core.api.locator.LocatorAPI")
-                && ServiceProviders.isRegistered(FeedbackAPI.class, "anarchy.minesky.core.api.feedback.FeedbackAPI");
+                && ServiceProviders.isRegistered(FeedbackAPI.class, "anarchy.minesky.core.api.feedback.FeedbackAPI")
+                && ServiceProviders.isRegistered(PlayerConfigAPI.class, "anarchy.minesky.core.api.playerconfig.PlayerConfigAPI");
     }
 
     public static LocatorAPI getLocator() {
@@ -42,5 +44,9 @@ public final class MineSkyAPI {
 
     public static FeedbackAPI feedback() {
         return ServiceProviders.get(FeedbackAPI.class, "anarchy.minesky.core.api.feedback.FeedbackAPI");
+    }
+
+    public static PlayerConfigAPI playerConfig() {
+        return PlayerConfigAPI.get();
     }
 }

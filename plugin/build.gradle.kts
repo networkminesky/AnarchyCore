@@ -20,6 +20,9 @@ dependencies {
     }
 
     compileOnly("me.clip:placeholderapi:2.12.3")
+
+    implementation("com.zaxxer:HikariCP:6.2.1")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.3")
 }
 
 tasks {
@@ -35,5 +38,13 @@ tasks {
         dependsOn(":api:classes")
         from(project(":api").sourceSets.main.get().output)
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        from(
+            configurations.runtimeClasspath.get()
+                .filter { file ->
+                    file.name.contains("HikariCP", ignoreCase = true)
+                            || file.name.contains("mariadb", ignoreCase = true)
+                }
+                .map { file -> if (file.isDirectory) file else zipTree(file) },
+        )
     }
 }

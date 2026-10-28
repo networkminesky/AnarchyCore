@@ -1,0 +1,154 @@
+# Mensagens do AnarchyCore (&, &#RRGGBB e MiniMessage)
+# Placeholders: {player}, {target}, {sender}, {message}, {ping}
+
+commands:
+  player-only: "&cApenas jogadores podem usar este comando."
+  no-permission: "&cVocê não tem permissão para fazer isso."
+  player-not-found: "&cJogador &f{player}&c não encontrado."
+  tell-usage: "&cUso: /tell <jogador> [mensagem]"
+  reply-usage: "&cUso: /r <mensagem>"
+  reply-no-target: "&cVocê não tem ninguém para responder."
+  tell-self: "&cVocê não pode enviar mensagem privada para si mesmo."
+  reload-success: "&aAnarchyCore recarregado com sucesso."
+  reload-usage: "&cUso: /anarchycore reload"
+
+ping:
+  self: "&7Seu ping: &f{ping}ms"
+  other: "&7Ping de &f{target}&7: &f{ping}ms"
+
+tell:
+  outgoing: "&7Você sussurrou para &f{target}&7: &f{message}"
+  incoming: "&7{sender} sussurrou para você: &f{message}"
+  error:
+    target-blocks-strangers: "&#FF6B6B&#FFFFFF{target} &#FF6B6Bnão aceita mensagens de desconhecidos."
+  dialog:
+    title: "Mensagem privada"
+    body: "&7Para: &f{target}"
+    input-label: "Mensagem"
+    input-placeholder: "Escreva sua mensagem..."
+    send-button: "Enviar"
+
+chat:
+  antiflood:
+    wait: "&cAguarde um pouco antes de enviar outra mensagem."
+
+tpa:
+  usage:
+    tpa: "&#FF6B6BUso: &#FFFFFF/tpa <jogador>"
+    tpahere: "&#FF6B6BUso: &#FFFFFF/tpaqui <jogador>"
+  error:
+    self: "&#FF6B6BVocê não pode enviar pedido de TPA para si mesmo."
+    no-request: "&#FF6B6BVocê não tem pedidos de TPA pendentes."
+    requester-offline: "&#FF6B6BO jogador que enviou o pedido saiu do servidor."
+    target-blocks-strangers: "&#FF6B6B&#FFFFFF{target} &#FF6B6Bnão aceita TPA de desconhecidos."
+  request-sent-tpa: "&#7BED9FPedido enviado! &#FFFFFF{target} &#7BED9Fpode aceitar com &#FFFFFF/tpaceitar"
+  request-sent-tpahere: "&#7BED9FPedido enviado! &#FFFFFF{target} &#7BED9Fpode aceitar com &#FFFFFF/tpaceitar"
+  request-received-tpa: "&#FFD166&#FFFFFF{player} &#FFD166quer ir até você. &#FFFFFF/tpaceitar &#FFD166| &#FFFFFF/tpanegar"
+  request-received-tpahere: "&#FF6B6B&#FFFFFF{player} &#FF6B6Bquer te PUXAR até ele. &#FFFFFF/tpaceitar &#FF6B6B| &#FFFFFF/tpanegar"
+  accepted-target-tpa: "&#7BED9FVocê aceitou. &#FFFFFF{player} &#7BED9Fvirá até você em instantes."
+  accepted-traveller-tpa: "&#7BED9F&#FFFFFF{player} &#7BED9Faceitou! Fique parado por alguns segundos."
+  accepted-target-tpahere: "&#7BED9FVocê aceitou ir até &#FFFFFF{player}&#7BED9F."
+  accepted-traveller-tpahere: "&#7BED9F&#FFFFFF{player} &#7BED9Faceitou e irá até você."
+  denied-target: "&#FF6B6BPedido de &#FFFFFF{player} &#FF6B6Bnegado."
+  denied-requester: "&#FF6B6B&#FFFFFF{player} &#FF6B6Bnegou seu pedido de TPA."
+  countdown-start: "&#FFD166Teleporte em &#FFFFFF{seconds}s&#FFD166. &#FF6B6BNão se mova!"
+  teleport-success: "&#7BED9FTeleporte concluído!"
+  teleport-failed: "&#FF6B6BNão foi possível teleportar."
+  teleport-cancelled-move: "&#FF6B6BTeleporte cancelado porque você se moveu."
+  teleport-cancelled-quit: "&#FF6B6BTeleporte cancelado."
+  actionbar:
+    request-tpa: "&#FFD166TPA de &#FFFFFF{player}"
+    request-tpahere: "&#FF6B6BTPAQUI de &#FFFFFF{player}"
+    countdown: "&#FFD166Teleporte em &#FFFFFF{seconds}s"
+    teleport-done: "&#7BED9FTeleportado!"
+    cancelled: "&#FF6B6BTeleporte cancelado"
+  dialog:
+    confirm-yes: "&#7BED9FConfirmar"
+    confirm-no: "&#FF6B6BCancelar"
+    accept-cancelled: "&#AAAAAAPedido mantido pendente."
+    tpahere-send:
+      title: "&#FFD166Confirmar TPAQUI"
+      body: "&#FFFFFFPuxar &#FFD166{target} &#FFFFFFaté sua posição?"
+      warning: "&#FF6B6BEles verão um aviso de armadilha ao aceitar."
+      cancelled: "&#AAAAAAPedido cancelado."
+    accept-tpa:
+      title: "&#7BED9FAceitar TPA?"
+      body: "&#FFFFFF{player} &#7BED9Fpediu para ir até você."
+      warning: "&#FFD166Ele aparecerá na sua localização atual."
+    accept-tpahere:
+      title: "&#FF6B6BAceitar TPAQUI?"
+      body: "&#FF6B6BVocê será &#FFFFFFPUXADO &#FF6B6Baté &#FFFFFF{player}&#FF6B6B."
+      warning: "&#FFD166Confirme apenas se confiar no jogador."
+      trap-warning: "&#FF6B6B⚠ Pode ser armadilha (lava, void, PvP)."
+
+warps:
+  usage:
+    setwarp: "&#FF6B6BUso: &#FFFFFF/setwarp <id>"
+    editwarp: "&#FF6B6BUso: &#FFFFFF/editwarp <id>"
+  error:
+    invalid-id: "&#FF6B6BID inválido. Use letras, números, _ ou - (máx. 32)."
+    not-found: "&#FF6B6BWarp &#FFFFFF{warp} &#FF6B6Bnão existe."
+    no-permission: "&#FF6B6BVocê não tem permissão para a warp &#FFFFFF{warp}&#FF6B6B."
+    none-visible: "&#FF6B6BNenhuma warp disponível para você."
+    world-missing: "&#FF6B6BO mundo da warp &#FFFFFF{warp} &#FF6B6Bnão está carregado."
+  set-success: "&#7BED9FWarp &#FFFFFF{warp} &#7BED9Fcriada!"
+  edit-success: "&#7BED9FWarp &#FFFFFF{warp} &#7BED9Fatualizada!"
+  countdown-start: "&#FFD166Indo para &#FFFFFF{warp} &#FFD166em &#FFFFFF{seconds}s&#FFD166. &#FF6B6BNão se mova!"
+  teleport-success: "&#7BED9FVocê chegou em &#FFFFFF{warp}&#7BED9F!"
+  teleport-failed: "&#FF6B6BNão foi possível teleportar."
+  teleport-cancelled-move: "&#FF6B6BTeleporte cancelado porque você se moveu."
+  teleport-cancelled-quit: "&#FF6B6BTeleporte cancelado."
+  actionbar:
+    countdown: "&#FFD166{warp} em &#FFFFFF{seconds}s"
+    teleport-done: "&#7BED9FTeleportado!"
+    cancelled: "&#FF6B6BTeleporte cancelado"
+  dialog:
+    list:
+      title: "&#7BED9FWarps"
+    editor:
+      create-title: "&#7BED9FCriar warp"
+      edit-title: "&#FFD166Editar warp"
+      create-body: "&#FFFFFFID: &#7BED9F{id}"
+      edit-body: "&#FFFFFFEditando: &#7BED9F{id}"
+      input-display: "Nome público"
+      input-display-placeholder: "Ex: &#7BED9FSpawn"
+      input-icon: "Ícone (material)"
+      input-icon-placeholder: "Ex: COMPASS"
+      save-button: "&#7BED9FSalvar"
+      cancel-button: "&#FF6B6BCancelar"
+      cancelled: "&#AAAAAAEdição cancelada."
+
+config:
+  state:
+    sim: "&#7BED9FSim"
+    nao: "&#FF6B6BNão"
+  toggle:
+    enabled: "&#7BED9F{option} &#7BED9Fativado."
+    disabled: "&#FF6B6B{option} &#FF6B6Bdesativado."
+  dialog:
+    main:
+      title: "&#7BED9FConfigurações MineSky"
+    apply: "&#7BED9FAplicar"
+    back: "&#AAAAAAVoltar"
+    categories:
+      tpa:
+        title: "&#FFD166TPA"
+        button: "&#FFD166TPA"
+      money:
+        title: "&#7BED9FDinheiro"
+        button: "&#7BED9FDinheiro"
+      tell:
+        title: "&#7BED9FMensagens privadas"
+        button: "&#7BED9FTell / Mensagens"
+      scoreboard:
+        title: "&#FFFFFFScoreboard"
+        button: "&#FFFFFFScoreboard"
+  options:
+    tpa-strangers: "TPA de desconhecidos"
+    tpahere-strangers: "TPAQUI de desconhecidos"
+    pay-strangers: "Pagamento de desconhecidos"
+    payment-sounds: "Sons de pagamento"
+    tell-strangers: "Mensagens de desconhecidos"
+    tell-sounds: "Sons de notificação"
+    scoreboard-enabled: "Exibir scoreboard"
+

@@ -2,6 +2,7 @@ package anarchy.minesky.core.impl.feedback;
 
 import anarchy.minesky.core.api.feedback.FeedbackAPI;
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.text.DialogComponentUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -22,6 +23,7 @@ public final class FeedbackManager implements FeedbackAPI {
     private int maxCharsPerPart = 64;
     private long ticksPerPart = 40L;
     private long ticksBetweenMessages = 5L;
+    private boolean mirrorToChat = true;
 
     public FeedbackManager(Plugin plugin) {
         this.plugin = plugin;
@@ -45,6 +47,7 @@ public final class FeedbackManager implements FeedbackAPI {
         maxCharsPerPart = Math.max(16, config.getInt("feedback.max-chars-per-part", 64));
         ticksPerPart = Math.max(5L, config.getLong("feedback.ticks-per-part", 40L));
         ticksBetweenMessages = Math.max(0L, config.getLong("feedback.ticks-between-messages", 5L));
+        mirrorToChat = config.getBoolean("feedback.mirror-to-chat", true);
     }
 
     public void handleQuit(UUID playerId) {
@@ -58,10 +61,17 @@ public final class FeedbackManager implements FeedbackAPI {
 
     @Override
     public void send(Player player, String message, FeedbackPriority priority) {
+        send(player, message, priority, mirrorToChat);
+    }
+
+    public void send(Player player, String message, FeedbackPriority priority, boolean mirrorToChat) {
         if (player == null || message == null || message.isBlank() || !plugin.isEnabled()) {
             return;
         }
-        enqueue(player, FeedbackTextSplitter.split(message, maxCharsPerPart), priority);
+        String normalized = DialogComponentUtils.normalizeLegacyColors(message.trim());
+        Component full = DialogComponentUtils.parse(normalized);
+        Component chatMirror = mirrorToChat ? full : null;
+        enqueue(player, FeedbackTextSplitter.split(normalized, maxCharsPerPart), priority, chatMirror);
     }
 
     @Override
@@ -71,13 +81,18 @@ public final class FeedbackManager implements FeedbackAPI {
 
     @Override
     public void send(Player player, Component message, FeedbackPriority priority) {
+        send(player, message, priority, mirrorToChat);
+    }
+
+    public void send(Player player, Component message, FeedbackPriority priority, boolean mirrorToChat) {
         if (player == null || !player.isOnline() || message == null || !plugin.isEnabled()) {
             return;
         }
         if (priority == null) {
             priority = FeedbackPriority.NORMAL;
         }
-        enqueue(player, FeedbackTextSplitter.split(message, maxCharsPerPart), priority);
+        Component chatMirror = mirrorToChat ? message : null;
+        enqueue(player, FeedbackTextSplitter.split(message, maxCharsPerPart), priority, chatMirror);
     }
 
     @Override
@@ -107,9 +122,9 @@ public final class FeedbackManager implements FeedbackAPI {
         return state != null && state.isBusy();
     }
 
-    private void enqueue(Player player, List<Component> parts, FeedbackPriority priority) {
+    private void enqueue(Player player, List<Component> parts, FeedbackPriority priority, Component chatMirror) {
         FeedbackPlayerState state = states.computeIfAbsent(player.getUniqueId(), id -> new FeedbackPlayerState());
-        FeedbackPlayerState.QueuedMessage queued = new FeedbackPlayerState.QueuedMessage(parts, priority);
+        FeedbackPlayerState.QueuedMessage queued = new FeedbackPlayerState.QueuedMessage(parts, priority, chatMirror);
 
         player.getScheduler().run(plugin, task -> {
             if (!player.isOnline() || !plugin.isEnabled()) {
@@ -147,6 +162,9 @@ public final class FeedbackManager implements FeedbackAPI {
             FeedbackPlayerState.QueuedMessage next = state.pollNext();
             if (next == null) {
                 return;
+            }
+            if (next.chatMirror() != null) {
+                player.sendMessage(next.chatMirror());
             }
             state.beginActive(next.parts());
         }

@@ -25,3 +25,71 @@ feedback:
   ticks-per-part: 40
   # Pausa entre mensagens completas na fila
   ticks-between-messages: 5
+  # Envia a mesma mensagem no chat do jogador ao exibir no action bar
+  mirror-to-chat: true
+
+# =========================================================
+#             Antiflood do chat
+# =========================================================
+
+chat:
+  antiflood:
+    enabled: true
+    # Máximo de mensagens permitidas dentro da janela
+    max-messages: 2
+    # Janela em milissegundos
+    window-ms: 2000
+
+# =========================================================
+#             TPA / TPAHERE (Folia)
+# =========================================================
+
+tpa:
+  countdown-seconds: 5
+  move-threshold: 0.5
+  request-expire-seconds: 120
+  sounds:
+    volume: 0.8
+    pitch: 1.0
+    request-send: ENTITY_EXPERIENCE_ORB_PICKUP
+    request-receive: BLOCK_NOTE_BLOCK_PLING
+    accept: ENTITY_PLAYER_LEVELUP
+    deny: ENTITY_VILLAGER_NO
+    countdown-tick: BLOCK_NOTE_BLOCK_HAT
+    teleport: ENTITY_ENDERMAN_TELEPORT
+    cancel: ENTITY_ITEM_BREAK
+
+# =========================================================
+#             Warps (Folia)
+# =========================================================
+
+warps:
+  list-header-icon: RED_BED
+  countdown-seconds: 5
+  move-threshold: 0.5
+  sounds:
+    volume: 0.8
+    pitch: 1.0
+    countdown-tick: BLOCK_NOTE_BLOCK_HAT
+    teleport: ENTITY_ENDERMAN_TELEPORT
+    cancel: ENTITY_ITEM_BREAK
+
+# =========================================================
+#             MariaDB / preferências de jogador
+# =========================================================
+
+database:
+  enabled: true
+  jdbc-url: "jdbc:mariadb://127.0.0.1:3306/anarchycore?useUnicode=true&characterEncoding=utf8"
+  username: root
+  password: ""
+  pool-size: 10
+  connection-timeout-ms: 10000
+
+player-config:
+  sounds:
+    volume: 0.7
+    pitch: 1.0
+    toggle-on: ENTITY_EXPERIENCE_ORB_PICKUP
+    toggle-off: BLOCK_NOTE_BLOCK_BASS
+    tell-notify: BLOCK_NOTE_BLOCK_PLING

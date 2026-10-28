@@ -84,5 +84,5 @@ final class FeedbackPlayerState {
         return hasActiveParts() || hasQueued();
     }
 
-    record QueuedMessage(List<Component> parts, FeedbackPriority priority) {}
+    record QueuedMessage(List<Component> parts, FeedbackPriority priority, Component chatMirror) {}
 }

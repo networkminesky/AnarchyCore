@@ -20,22 +20,26 @@ public final class MineSkyDialog {
 
     private final Component title;
     private final List<Component> body;
-    private final List<ItemStack> items;
+    private final List<DialogBodyItem> bodyItems;
     private final List<DialogInputField<?>> inputs;
     private final List<DialogButton> buttons;
     private final boolean canCloseWithEscape;
     private final boolean buttonsBeforeBody;
+    private final boolean buttonsAfterBody;
+    private final int multiActionColumns;
     private final @Nullable BiConsumer<Player, DialogResponse> submitAction;
     private final @Nullable Consumer<Player> closeAction;
 
     private MineSkyDialog(Builder builder) {
         this.title = builder.title;
         this.body = List.copyOf(builder.body);
-        this.items = List.copyOf(builder.items);
+        this.bodyItems = List.copyOf(builder.bodyItems);
         this.inputs = List.copyOf(builder.inputs);
         this.buttons = List.copyOf(builder.buttons);
         this.canCloseWithEscape = builder.canCloseWithEscape;
         this.buttonsBeforeBody = builder.buttonsBeforeBody;
+        this.buttonsAfterBody = builder.buttonsAfterBody;
+        this.multiActionColumns = builder.multiActionColumns;
         this.submitAction = builder.submitAction;
         this.closeAction = builder.closeAction;
     }
@@ -53,11 +57,18 @@ public final class MineSkyDialog {
 
     public Component getTitle() { return title; }
     public List<Component> getBody() { return body; }
-    public List<ItemStack> getItems() { return items; }
+    public List<DialogBodyItem> getBodyItems() { return bodyItems; }
+    /** @deprecated use {@link #getBodyItems()} */
+    @Deprecated
+    public List<ItemStack> getItems() {
+        return bodyItems.stream().map(DialogBodyItem::item).toList();
+    }
     public List<DialogInputField<?>> getInputs() { return inputs; }
     public List<DialogButton> getButtons() { return buttons; }
     public boolean isCanCloseWithEscape() { return canCloseWithEscape; }
     public boolean isButtonsBeforeBody() { return buttonsBeforeBody; }
+    public boolean isButtonsAfterBody() { return buttonsAfterBody; }
+    public int getMultiActionColumns() { return multiActionColumns; }
     public @Nullable BiConsumer<Player, DialogResponse> getSubmitAction() { return submitAction; }
     public @Nullable Consumer<Player> getCloseAction() { return closeAction; }
     public boolean hasInputs() { return !inputs.isEmpty(); }
@@ -65,11 +76,13 @@ public final class MineSkyDialog {
     public static final class Builder {
         private Component title = Component.text("Menu");
         private final List<Component> body = new ArrayList<>();
-        private final List<ItemStack> items = new ArrayList<>();
+        private final List<DialogBodyItem> bodyItems = new ArrayList<>();
         private final List<DialogInputField<?>> inputs = new ArrayList<>();
         private final List<DialogButton> buttons = new ArrayList<>();
         private boolean canCloseWithEscape = true;
         private boolean buttonsBeforeBody = false;
+        private boolean buttonsAfterBody = false;
+        private int multiActionColumns = 0;
         private BiConsumer<Player, DialogResponse> submitAction;
         private Consumer<Player> closeAction;
 
@@ -94,7 +107,17 @@ public final class MineSkyDialog {
         }
 
         public Builder bodyItem(ItemStack item) {
-            if (item != null) this.items.add(item);
+            if (item != null) {
+                bodyItems.add(DialogBodyItem.full(item));
+            }
+            return this;
+        }
+
+        /** Ícone pequeno no corpo (16×16), para menus compactos estilo vanilla. */
+        public Builder bodyItemIcon(ItemStack item) {
+            if (item != null) {
+                bodyItems.add(DialogBodyItem.icon(item));
+            }
             return this;
         }
 
@@ -109,6 +132,20 @@ public final class MineSkyDialog {
          */
         public Builder buttonsBeforeBody(boolean beforeBody) {
             this.buttonsBeforeBody = beforeBody;
+            return this;
+        }
+
+        /**
+         * Renderiza cada botão como linha clicável no corpo, logo após o texto (sem ActionButtons embaixo).
+         */
+        public Builder buttonsAfterBody(boolean afterBody) {
+            this.buttonsAfterBody = afterBody;
+            return this;
+        }
+
+        /** Colunas do {@code multiAction} (1 = lista vertical). 0 = padrão do Paper. */
+        public Builder multiActionColumns(int columns) {
+            this.multiActionColumns = Math.max(0, columns);
             return this;
         }
 

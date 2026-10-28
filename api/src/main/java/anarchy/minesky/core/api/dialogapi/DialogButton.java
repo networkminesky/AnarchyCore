@@ -16,6 +16,7 @@ public final class DialogButton {
     private final @Nullable String iconUrl;
     private final @Nullable String iconPath;
     private final BiConsumer<Player, DialogResponse> action;
+    private final boolean closeOnClick;
 
     private DialogButton(Builder builder) {
         this.label = builder.label;
@@ -24,6 +25,7 @@ public final class DialogButton {
         this.iconUrl = builder.iconUrl;
         this.iconPath = builder.iconPath;
         this.action = builder.action;
+        this.closeOnClick = builder.closeOnClick;
     }
 
     public static DialogButton of(Component label, Consumer<Player> onClick) {
@@ -64,6 +66,7 @@ public final class DialogButton {
     public @Nullable String getIconUrl() { return iconUrl; }
     public @Nullable String getIconPath() { return iconPath; }
     public BiConsumer<Player, DialogResponse> getAction() { return action; }
+    public boolean isCloseOnClick() { return closeOnClick; }
 
     public void click(Player player, DialogResponse response) {
         if (action != null) {
@@ -78,6 +81,7 @@ public final class DialogButton {
         private String iconUrl;
         private String iconPath;
         private BiConsumer<Player, DialogResponse> action = (p, r) -> {};
+        private boolean closeOnClick = true;
 
         public Builder label(Component label) {
             this.label = label;
@@ -121,6 +125,12 @@ public final class DialogButton {
 
         public Builder onClick(BiConsumer<Player, DialogResponse> action) {
             this.action = action;
+            return this;
+        }
+
+        /** Se {@code false}, o diálogo permanece aberto após o clique (Java Edition). */
+        public Builder closeOnClick(boolean closeOnClick) {
+            this.closeOnClick = closeOnClick;
             return this;
         }
 
