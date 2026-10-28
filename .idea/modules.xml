@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/AnarchyCore.main.iml" filepath="$PROJECT_DIR$/.idea/modules/AnarchyCore.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/AnarchyCore.test.iml" filepath="$PROJECT_DIR$/.idea/modules/AnarchyCore.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/api/AnarchyCore.api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/api/AnarchyCore.api.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.main.iml" filepath="$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.test.iml" filepath="$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.test.iml" />
     </modules>
   </component>
 </project>
