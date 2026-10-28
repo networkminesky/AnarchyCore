@@ -1,9 +1,8 @@
 package anarchy.minesky.core.api.locator;
 
-import org.bukkit.Bukkit;
+import anarchy.minesky.core.api.ServiceProviders;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +19,7 @@ public interface LocatorAPI {
      * Retorna null caso o AnarchyCore não esteja carregado.
      */
     static LocatorAPI get() {
-        RegisteredServiceProvider<LocatorAPI> provider = Bukkit.getServicesManager().getRegistration(LocatorAPI.class);
-        return provider != null ? provider.getProvider() : null;
+        return ServiceProviders.get(LocatorAPI.class, "anarchy.minesky.core.api.locator.LocatorAPI");
     }
 
     // ==========================================

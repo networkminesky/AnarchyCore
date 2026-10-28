@@ -19,18 +19,28 @@ public final class MineSkyAPI {
         if (!Bukkit.getPluginManager().isPluginEnabled(CORE_PLUGIN_NAME)) {
             return false;
         }
-        return DialogAPI.get() != null && LocatorAPI.get() != null && FeedbackAPI.get() != null;
+        return ServiceProviders.isRegistered(DialogAPI.class, "anarchy.minesky.core.api.dialogapi.DialogAPI")
+                && ServiceProviders.isRegistered(LocatorAPI.class, "anarchy.minesky.core.api.locator.LocatorAPI")
+                && ServiceProviders.isRegistered(FeedbackAPI.class, "anarchy.minesky.core.api.feedback.FeedbackAPI");
     }
 
     public static LocatorAPI getLocator() {
-        return LocatorAPI.get();
+        return ServiceProviders.get(LocatorAPI.class, "anarchy.minesky.core.api.locator.LocatorAPI");
     }
 
     public static DialogAPI getDialog() {
-        return DialogAPI.get();
+        return ServiceProviders.get(DialogAPI.class, "anarchy.minesky.core.api.dialogapi.DialogAPI");
     }
 
-    public static DialogAPI dialog() { return DialogAPI.get(); }
-    public static LocatorAPI locator() { return LocatorAPI.get(); }
-    public static FeedbackAPI feedback() { return FeedbackAPI.get(); }
+    public static DialogAPI dialog() {
+        return getDialog();
+    }
+
+    public static LocatorAPI locator() {
+        return getLocator();
+    }
+
+    public static FeedbackAPI feedback() {
+        return ServiceProviders.get(FeedbackAPI.class, "anarchy.minesky.core.api.feedback.FeedbackAPI");
+    }
 }

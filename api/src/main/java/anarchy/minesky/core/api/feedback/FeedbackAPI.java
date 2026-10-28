@@ -1,9 +1,8 @@
 package anarchy.minesky.core.api.feedback;
 
+import anarchy.minesky.core.api.ServiceProviders;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.RegisteredServiceProvider;
 
 /**
  * API de mensagens de feedback no estilo action bar (DonutSMP-like).
@@ -12,9 +11,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 public interface FeedbackAPI {
 
     static FeedbackAPI get() {
-        RegisteredServiceProvider<FeedbackAPI> provider =
-                Bukkit.getServicesManager().getRegistration(FeedbackAPI.class);
-        return provider != null ? provider.getProvider() : null;
+        return ServiceProviders.get(FeedbackAPI.class, "anarchy.minesky.core.api.feedback.FeedbackAPI");
     }
 
     static void display(Player player, String message) {

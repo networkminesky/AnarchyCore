@@ -1,15 +1,13 @@
 package anarchy.minesky.core.api.dialogapi;
 
+import anarchy.minesky.core.api.ServiceProviders;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.RegisteredServiceProvider;
 
 public interface DialogAPI {
 
     static DialogAPI get() {
-        RegisteredServiceProvider<DialogAPI> provider = Bukkit.getServicesManager().getRegistration(DialogAPI.class);
-        return provider != null ? provider.getProvider() : null;
+        return ServiceProviders.get(DialogAPI.class, "anarchy.minesky.core.api.dialogapi.DialogAPI");
     }
 
     /**
