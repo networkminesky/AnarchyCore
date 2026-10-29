@@ -133,6 +133,41 @@ public final class FeedbackManager implements FeedbackAPI {
         }, null);
     }
 
+    public void setPersistentLowOverlay(Player player, Component message) {
+        if (player == null || message == null) {
+            return;
+        }
+        FeedbackPlayerState state = states.computeIfAbsent(player.getUniqueId(), id -> new FeedbackPlayerState());
+        player.getScheduler().run(plugin, task -> {
+            if (!player.isOnline() || !plugin.isEnabled()) {
+                return;
+            }
+            synchronized (state) {
+                state.setPersistentLowOverlay(message);
+            }
+            refreshPersistentLowOverlay(player, state);
+        }, null);
+    }
+
+    public void clearPersistentLowOverlay(Player player) {
+        if (player == null) {
+            return;
+        }
+        FeedbackPlayerState state = states.get(player.getUniqueId());
+        if (state == null) {
+            return;
+        }
+        player.getScheduler().run(plugin, task -> {
+            if (!player.isOnline() || !plugin.isEnabled()) {
+                return;
+            }
+            synchronized (state) {
+                state.clearPersistentLowOverlay();
+            }
+            refreshPersistentLowOverlay(player, state);
+        }, null);
+    }
+
     @Override
     public boolean isBusy(Player player) {
         if (player == null) {
@@ -180,13 +215,17 @@ public final class FeedbackManager implements FeedbackAPI {
                     state.finishActive();
                 }
                 player.sendActionBar(part);
-                long delay = moreParts ? ticksPerPart : ticksBetweenMessages;
+                long delay = ticksPerPart;
+                if (!moreParts && state.hasQueued()) {
+                    delay = ticksPerPart + ticksBetweenMessages;
+                }
                 schedulePump(player, state, generation, delay);
                 return;
             }
 
             FeedbackPlayerState.QueuedMessage next = state.pollNext();
             if (next == null) {
+                refreshPersistentLowOverlay(player, state);
                 return;
             }
             playUiSound(player, next.priority(), next.uiSound());
@@ -223,5 +262,17 @@ public final class FeedbackManager implements FeedbackAPI {
             }
             pump(player, state);
         }, null, delayTicks);
+    }
+
+    private void refreshPersistentLowOverlay(Player player, FeedbackPlayerState state) {
+        synchronized (state) {
+            if (state.isBusy()) {
+                return;
+            }
+            Component overlay = state.persistentLowOverlay();
+            if (overlay != null) {
+                player.sendActionBar(overlay);
+            }
+        }
     }
 }

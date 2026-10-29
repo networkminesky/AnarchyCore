@@ -16,6 +16,7 @@ final class FeedbackPlayerState {
     private int playbackGeneration;
     private List<Component> activeParts = List.of();
     private int partIndex;
+    private Component persistentLowOverlay;
 
     synchronized void enqueue(QueuedMessage message, FeedbackPriority priority) {
         switch (priority) {
@@ -50,6 +51,7 @@ final class FeedbackPlayerState {
         lowQueue.clear();
         activeParts = List.of();
         partIndex = 0;
+        persistentLowOverlay = null;
     }
 
     synchronized int generation() {
@@ -83,6 +85,18 @@ final class FeedbackPlayerState {
 
     synchronized boolean isBusy() {
         return hasActiveParts() || hasQueued();
+    }
+
+    synchronized void setPersistentLowOverlay(Component overlay) {
+        this.persistentLowOverlay = overlay;
+    }
+
+    synchronized Component persistentLowOverlay() {
+        return persistentLowOverlay;
+    }
+
+    synchronized void clearPersistentLowOverlay() {
+        this.persistentLowOverlay = null;
     }
 
     record QueuedMessage(

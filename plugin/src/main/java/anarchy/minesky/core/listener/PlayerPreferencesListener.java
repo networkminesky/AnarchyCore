@@ -4,6 +4,7 @@ import anarchy.minesky.core.AnarchyCoreBootstrap;
 import anarchy.minesky.core.api.playerdata.PlayerDataAPI;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
+import anarchy.minesky.core.impl.tpa.TpaManager;
 import io.papermc.paper.connection.PlayerGameConnection;
 import io.papermc.paper.event.player.PlayerCustomClickEvent;
 import org.bukkit.entity.Player;
@@ -19,16 +20,19 @@ public final class PlayerPreferencesListener implements Listener {
     private final PlayerPreferencesService prefs;
     private final ConfigManager config;
     private final PlayerDataAPI playerData;
+    private final TpaManager tpaManager;
 
     public PlayerPreferencesListener(
             Plugin plugin,
             PlayerPreferencesService prefs,
             ConfigManager config,
-            PlayerDataAPI playerData) {
+            PlayerDataAPI playerData,
+            TpaManager tpaManager) {
         this.plugin = plugin;
         this.prefs = prefs;
         this.config = config;
         this.playerData = playerData;
+        this.tpaManager = tpaManager;
     }
 
     @EventHandler
@@ -37,6 +41,7 @@ public final class PlayerPreferencesListener implements Listener {
         if (playerData != null) {
             playerData.touchPlayerAsync(event.getPlayer().getUniqueId(), event.getPlayer().getName());
         }
+        event.getPlayer().getScheduler().run(plugin, task -> tpaManager.applyTpAutoState(event.getPlayer()), null);
     }
 
     @EventHandler

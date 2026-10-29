@@ -1,5 +1,6 @@
 package anarchy.minesky.core.impl.playerprefs;
 
+import anarchy.minesky.core.api.playerconfig.PlayerConfigBooleanOption;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -13,9 +14,28 @@ public final class PlayerPreferencesService {
     private final PlayerPreferencesRepository repository;
     private final Map<UUID, PlayerPreferences> cache = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> knownCache = new ConcurrentHashMap<>();
+    private PlayerConfigRegistryImpl registry;
 
     public PlayerPreferencesService(PlayerPreferencesRepository repository) {
         this.repository = repository;
+    }
+
+    void attachRegistry(PlayerConfigRegistryImpl registry) {
+        this.registry = registry;
+    }
+
+    void onBooleanOptionRegistered(int index, boolean defaultValue) {
+        if (registry == null) {
+            return;
+        }
+        PlayerConfigRegistryImpl.PlayerConfigBooleanOptionImpl option = registry.optionAt(index);
+        if (option == null) {
+            return;
+        }
+        String key = option.key();
+        for (PlayerPreferences prefs : cache.values()) {
+            prefs.putConfigBooleanIfAbsent(key, defaultValue);
+        }
     }
 
     public void loadPlayer(UUID playerId) {
@@ -26,9 +46,15 @@ public final class PlayerPreferencesService {
     public void unloadPlayer(UUID playerId) {
         PlayerPreferences prefs = cache.remove(playerId);
         if (prefs != null) {
-            repository.save(playerId, prefs);
+            repository.saveSync(playerId, prefs);
         }
         knownCache.remove(playerId);
+    }
+
+    public void flushAllCachedSync() {
+        for (Map.Entry<UUID, PlayerPreferences> entry : cache.entrySet()) {
+            repository.saveSync(entry.getKey(), entry.getValue());
+        }
     }
 
     public PlayerPreferences get(UUID playerId) {
@@ -44,6 +70,25 @@ public final class PlayerPreferencesService {
         editor.accept(prefs);
         cache.put(player.getUniqueId(), prefs);
         repository.save(player.getUniqueId(), prefs);
+    }
+
+    boolean getBooleanFlag(UUID playerId, int index, boolean defaultValue) {
+        if (registry == null) {
+            return defaultValue;
+        }
+        PlayerConfigRegistryImpl.PlayerConfigBooleanOptionImpl option = registry.optionAt(index);
+        if (option == null) {
+            return defaultValue;
+        }
+        return get(playerId).getConfigBoolean(option.key(), defaultValue);
+    }
+
+    boolean getExtraBoolean(UUID playerId, String key) {
+        return get(playerId).getConfigBoolean(key, false);
+    }
+
+    void setConfigBoolean(Player player, PlayerConfigBooleanOption option, boolean value) {
+        update(player, prefs -> prefs.setConfigBoolean(option.key(), value));
     }
 
     public boolean isStranger(UUID viewer, UUID other) {

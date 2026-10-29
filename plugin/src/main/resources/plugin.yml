@@ -41,6 +41,9 @@ commands:
     description: Nega um pedido de TPA
     usage: /tpanegar [jogador]
     aliases: [tpdeny]
+  tpauto:
+    description: Aceita pedidos de TPA automaticamente
+    usage: /tpauto [on|off]
   warp:
     description: Lista ou teleporta para uma warp
     usage: /warp [id]

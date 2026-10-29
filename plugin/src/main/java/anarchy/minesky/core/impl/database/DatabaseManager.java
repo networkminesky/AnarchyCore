@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class DatabaseManager {
@@ -16,6 +17,7 @@ public final class DatabaseManager {
     private final Plugin plugin;
     private HikariDataSource dataSource;
     private ExecutorService executor;
+    private volatile boolean acceptingAsync = true;
 
     public DatabaseManager(Plugin plugin) {
         this.plugin = plugin;
@@ -39,14 +41,24 @@ public final class DatabaseManager {
         config.addDataSourceProperty("useServerPrepStmts", "true");
 
         this.dataSource = new HikariDataSource(config);
+        this.acceptingAsync = true;
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         runSync(this::migrate);
         plugin.getLogger().info("MariaDB conectado.");
     }
 
     public void shutdown() {
+        acceptingAsync = false;
         if (executor != null) {
-            executor.shutdownNow();
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
             executor = null;
         }
         if (dataSource != null) {
@@ -60,11 +72,13 @@ public final class DatabaseManager {
     }
 
     public void runAsync(Runnable task) {
-        if (executor == null) {
-            task.run();
+        if (!acceptingAsync || executor == null) {
             return;
         }
         executor.execute(() -> {
+            if (!acceptingAsync) {
+                return;
+            }
             try {
                 task.run();
             } catch (Exception e) {
@@ -137,7 +151,9 @@ public final class DatabaseManager {
                           payment_sounds TINYINT(1) NOT NULL DEFAULT 1,
                           allow_tell_strangers TINYINT(1) NOT NULL DEFAULT 1,
                           tell_sounds TINYINT(1) NOT NULL DEFAULT 1,
-                          scoreboard_enabled TINYINT(1) NOT NULL DEFAULT 1
+                          scoreboard_enabled TINYINT(1) NOT NULL DEFAULT 1,
+                          tpa_auto TINYINT(1) NOT NULL DEFAULT 0,
+                          config_options JSON NOT NULL DEFAULT ('{}')
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
                 statement.execute("""
@@ -177,6 +193,20 @@ public final class DatabaseManager {
                     statement.execute("""
                             ALTER TABLE ac_player_homes
                             ADD COLUMN icon_material VARCHAR(64) NOT NULL DEFAULT 'BLUE_BED'
+                            """);
+                } catch (SQLException ignored) {
+                }
+                try {
+                    statement.execute("""
+                            ALTER TABLE ac_player_prefs
+                            ADD COLUMN tpa_auto TINYINT(1) NOT NULL DEFAULT 0
+                            """);
+                } catch (SQLException ignored) {
+                }
+                try {
+                    statement.execute("""
+                            ALTER TABLE ac_player_prefs
+                            ADD COLUMN config_options JSON NOT NULL DEFAULT ('{}')
                             """);
                 } catch (SQLException ignored) {
                 }

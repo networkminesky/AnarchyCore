@@ -5,6 +5,7 @@ import anarchy.minesky.core.command.AnarchyCoreCommand;
 import anarchy.minesky.core.command.PingCommand;
 import anarchy.minesky.core.command.ReplyCommand;
 import anarchy.minesky.core.command.TellCommand;
+import anarchy.minesky.core.command.TpAutoCommand;
 import anarchy.minesky.core.command.TpaAcceptCommand;
 import anarchy.minesky.core.command.TpaCommand;
 import anarchy.minesky.core.command.TpaDenyCommand;
@@ -110,11 +111,12 @@ public final class AnarchyCore extends JavaPlugin {
         PlayerPreferencesRepository preferencesRepository = new PlayerPreferencesRepository(this, databaseManager);
         this.playerPreferencesService = new PlayerPreferencesService(preferencesRepository);
         this.playerConfigApi = new PlayerConfigAPIImpl(this, playerPreferencesService);
+        this.playerConfigApi.registerCoreDefaults(messagesManager);
         this.playerConfigApi.register();
         this.playerDataApi = new PlayerDataAPIImpl(this, databaseManager);
         this.playerDataApi.register();
         this.configManager = new ConfigManager(
-                this, messagesManager, feedbackManager, playerPreferencesService, uiSoundsApi);
+                messagesManager, feedbackManager, playerPreferencesService, playerConfigApi.registry(), uiSoundsApi);
 
         this.privateMessageService = new PrivateMessageService(
                 messagesManager, feedbackManager, playerPreferencesService, configManager);
@@ -137,7 +139,7 @@ public final class AnarchyCore extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
         getServer().getPluginManager().registerEvents(
-                new PlayerPreferencesListener(this, playerPreferencesService, configManager, playerDataApi), this);
+                new PlayerPreferencesListener(this, playerPreferencesService, configManager, playerDataApi, tpaManager), this);
         getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.loadPlayer(p.getUniqueId()));
         getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(), this);
     }
@@ -165,6 +167,9 @@ public final class AnarchyCore extends JavaPlugin {
 
         TpaDenyCommand tpaDenyCommand = new TpaDenyCommand(messagesManager, tpaManager);
         bind("tpanegar", tpaDenyCommand, tpaDenyCommand);
+
+        TpAutoCommand tpAutoCommand = new TpAutoCommand(messagesManager, tpaManager);
+        bind("tpauto", tpAutoCommand, tpAutoCommand);
 
         WarpCommand warpCommand = new WarpCommand(messagesManager, warpManager);
         bind("warp", warpCommand, warpCommand);
@@ -255,6 +260,9 @@ public final class AnarchyCore extends JavaPlugin {
             locatorManager.stop();
             locatorManager = null;
         }
+        if (tpaManager != null) {
+            tpaManager.shutdown();
+        }
         tpaManager = null;
         tpaSettings = null;
         warpManager = null;
@@ -264,11 +272,10 @@ public final class AnarchyCore extends JavaPlugin {
         homeRepository = null;
         homeSettings = null;
         if (databaseManager != null) {
-            getServer().getOnlinePlayers().forEach(p -> {
-                if (playerPreferencesService != null) {
-                    playerPreferencesService.unloadPlayer(p.getUniqueId());
-                }
-            });
+            if (playerPreferencesService != null) {
+                getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.unloadPlayer(p.getUniqueId()));
+                playerPreferencesService.flushAllCachedSync();
+            }
             databaseManager.shutdown();
             databaseManager = null;
         }

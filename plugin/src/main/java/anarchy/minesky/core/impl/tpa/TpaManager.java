@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,9 @@ public final class TpaManager {
 
     private final Map<UUID, List<TpaRequest>> incomingByTarget = new ConcurrentHashMap<>();
     private final Map<UUID, ActiveTeleport> activeTeleports = new ConcurrentHashMap<>();
+    private final Map<UUID, ScheduledTask> tpAutoBannerTasks = new ConcurrentHashMap<>();
+
+    private static final long TP_AUTO_BANNER_PERIOD_TICKS = 20L;
 
     public TpaManager(
             Plugin plugin,
@@ -43,6 +47,7 @@ public final class TpaManager {
     }
 
     public void handleQuit(UUID playerId) {
+        stopTpAutoBanner(playerId);
         incomingByTarget.remove(playerId);
         cancelTeleport(playerId, "tpa.teleport-cancelled-quit");
         incomingByTarget.values().forEach(list -> list.removeIf(r -> r.requesterId().equals(playerId)));
@@ -98,15 +103,123 @@ public final class TpaManager {
 
         playerPrefs.markKnown(requester.getUniqueId(), target.getUniqueId());
 
+        boolean autoAccept = playerPrefs.get(target).tpaAuto();
+
         if (type == TpaRequestType.TPA) {
             notify(requester, messages.component("tpa.request-sent-tpa", "target", target.getName()), false);
-            notify(target, messages.component("tpa.request-received-tpa", "player", requester.getName()), false);
-            feedback.send(target, messages.component("tpa.actionbar.request-tpa", "player", requester.getName()));
+            if (!autoAccept) {
+                notify(target, messages.component("tpa.request-received-tpa", "player", requester.getName()), false);
+                feedback.send(target, messages.component("tpa.actionbar.request-tpa", "player", requester.getName()));
+            }
         } else {
             notify(requester, messages.component("tpa.request-sent-tpahere", "target", target.getName()), false);
-            notify(target, messages.component("tpa.request-received-tpahere", "player", requester.getName()), false);
-            feedback.send(target, messages.component("tpa.actionbar.request-tpahere", "player", requester.getName()));
+            if (!autoAccept) {
+                notify(target, messages.component("tpa.request-received-tpahere", "player", requester.getName()), false);
+                feedback.send(target, messages.component("tpa.actionbar.request-tpahere", "player", requester.getName()));
+            }
         }
+
+        if (autoAccept) {
+            target.getScheduler().run(plugin, task -> tryAutoAccept(target, request), null);
+        }
+    }
+
+    public void toggleTpAuto(Player player) {
+        setTpAuto(player, !playerPrefs.get(player).tpaAuto());
+    }
+
+    public void setTpAuto(Player player, boolean enabled) {
+        if (playerPrefs.get(player).tpaAuto() == enabled) {
+            notify(
+                    player,
+                    messages.component(enabled ? "tpa.tpauto.already-on" : "tpa.tpauto.already-off"),
+                    true);
+            return;
+        }
+        playerPrefs.update(player, prefs -> prefs.setTpaAuto(enabled));
+        if (enabled) {
+            startTpAutoBanner(player);
+            notify(player, messages.component("tpa.tpauto.enabled"), false);
+            acceptAllPending(player);
+        } else {
+            stopTpAutoBanner(player);
+            notify(player, messages.component("tpa.tpauto.disabled"), false);
+        }
+    }
+
+    public void applyTpAutoState(Player player) {
+        if (!playerPrefs.get(player).tpaAuto()) {
+            return;
+        }
+        startTpAutoBanner(player);
+    }
+
+    public void shutdown() {
+        for (ScheduledTask task : tpAutoBannerTasks.values()) {
+            if (task != null) {
+                task.cancel();
+            }
+        }
+        tpAutoBannerTasks.clear();
+    }
+
+    private void startTpAutoBanner(Player player) {
+        stopTpAutoBanner(player);
+        Component banner = messages.component("tpa.tpauto.actionbar-active");
+        ScheduledTask task = player.getScheduler().runAtFixedRate(plugin, scheduled -> {
+            if (!player.isOnline() || !plugin.isEnabled()) {
+                scheduled.cancel();
+                tpAutoBannerTasks.remove(player.getUniqueId());
+                return;
+            }
+            if (!playerPrefs.get(player).tpaAuto()) {
+                scheduled.cancel();
+                tpAutoBannerTasks.remove(player.getUniqueId());
+                return;
+            }
+            if (feedback.isBusy(player) || activeTeleports.containsKey(player.getUniqueId())) {
+                return;
+            }
+            player.sendActionBar(banner);
+        }, null, 1L, TP_AUTO_BANNER_PERIOD_TICKS);
+        tpAutoBannerTasks.put(player.getUniqueId(), task);
+    }
+
+    private void stopTpAutoBanner(Player player) {
+        stopTpAutoBanner(player.getUniqueId());
+    }
+
+    private void stopTpAutoBanner(UUID playerId) {
+        ScheduledTask task = tpAutoBannerTasks.remove(playerId);
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    private void acceptAllPending(Player target) {
+        purgeExpired();
+        List<TpaRequest> list = incomingByTarget.get(target.getUniqueId());
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        for (TpaRequest pending : List.copyOf(list)) {
+            tryAutoAccept(target, pending);
+        }
+    }
+
+    private void tryAutoAccept(Player target, TpaRequest request) {
+        if (!playerPrefs.get(target).tpaAuto()) {
+            return;
+        }
+        if (request == null || !target.getUniqueId().equals(request.targetId())) {
+            return;
+        }
+        Player requester = Bukkit.getPlayer(request.requesterId());
+        if (requester == null || !requester.isOnline()) {
+            removeRequest(request);
+            return;
+        }
+        finalizeAccept(target, request);
     }
 
     public void acceptRequest(Player accepter, String requesterName) {
@@ -121,6 +234,11 @@ public final class TpaManager {
         if (requester == null || !requester.isOnline()) {
             removeRequest(request);
             notify(accepter, messages.component("commands.player-not-found", "player", requesterName != null ? requesterName : "?"), true);
+            return;
+        }
+
+        if (playerPrefs.get(accepter).tpaAuto()) {
+            finalizeAccept(accepter, request);
             return;
         }
 
@@ -162,21 +280,29 @@ public final class TpaManager {
             traveller = requester;
             destinationAnchor = accepter;
             notify(accepter, messages.component("tpa.accepted-target-tpa", "player", requester.getName()), false);
-            notify(requester, messages.component("tpa.accepted-traveller-tpa", "player", accepter.getName()), false);
+            if (!bypassesTeleportTimer(traveller)) {
+                notify(requester, messages.component("tpa.accepted-traveller-tpa", "player", accepter.getName()), false);
+            }
         } else {
             traveller = accepter;
             destinationAnchor = requester;
-            notify(accepter, messages.component("tpa.accepted-traveller-tpahere", "player", requester.getName()), false);
+            if (!bypassesTeleportTimer(traveller)) {
+                notify(accepter, messages.component("tpa.accepted-traveller-tpahere", "player", requester.getName()), false);
+            }
             notify(requester, messages.component("tpa.accepted-target-tpahere", "player", accepter.getName()), false);
         }
 
         Location destination = destinationAnchor.getLocation();
-        if (traveller.hasPermission(TpaSettings.BYPASS_TIMER_PERMISSION)) {
+        if (bypassesTeleportTimer(traveller)) {
             teleportNow(traveller, destination);
             return;
         }
 
         startCountdown(traveller, destination);
+    }
+
+    private boolean bypassesTeleportTimer(Player traveller) {
+        return traveller.hasPermission(TpaSettings.BYPASS_TIMER_PERMISSION);
     }
 
     public void denyRequest(Player denier, String requesterName) {
@@ -267,7 +393,6 @@ public final class TpaManager {
                 }
                 if (success) {
                     notify(player, messages.component("tpa.teleport-success"), false);
-                    feedback.send(player, messages.component("tpa.actionbar.teleport-done"));
                 } else {
                     notify(player, messages.component("tpa.teleport-failed"), true);
                 }

@@ -1,86 +1,111 @@
 package anarchy.minesky.core.impl.playerprefs;
 
-import java.util.UUID;
+import anarchy.minesky.core.api.playerconfig.PlayerConfigKeys;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public final class PlayerPreferences {
 
-    private boolean allowTpaFromStrangers = true;
-    private boolean allowTpaHereFromStrangers = true;
-    private boolean allowPayFromStrangers = true;
-    private boolean paymentSounds = true;
-    private boolean allowTellFromStrangers = true;
-    private boolean tellNotificationSounds = true;
-    private boolean scoreboardEnabled = true;
+    private final Map<String, Boolean> configBooleans = new HashMap<>();
+    private boolean tpaAuto = false;
 
     public static PlayerPreferences defaults() {
-        return new PlayerPreferences();
+        PlayerPreferences prefs = new PlayerPreferences();
+        prefs.configBooleans.put(PlayerConfigKeys.TPA_FROM_STRANGERS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.TPAHERE_FROM_STRANGERS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.PAY_FROM_STRANGERS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.PAYMENT_SOUNDS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.TELL_FROM_STRANGERS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.SCOREBOARD_ENABLED, true);
+        return prefs;
     }
 
     public PlayerPreferences copy() {
         PlayerPreferences copy = new PlayerPreferences();
-        copy.allowTpaFromStrangers = allowTpaFromStrangers;
-        copy.allowTpaHereFromStrangers = allowTpaHereFromStrangers;
-        copy.allowPayFromStrangers = allowPayFromStrangers;
-        copy.paymentSounds = paymentSounds;
-        copy.allowTellFromStrangers = allowTellFromStrangers;
-        copy.tellNotificationSounds = tellNotificationSounds;
-        copy.scoreboardEnabled = scoreboardEnabled;
+        copy.configBooleans.putAll(configBooleans);
+        copy.tpaAuto = tpaAuto;
         return copy;
     }
 
-    public boolean allowTpaFromStrangers() {
-        return allowTpaFromStrangers;
+    Map<String, Boolean> configBooleans() {
+        return configBooleans;
     }
 
-    public void setAllowTpaFromStrangers(boolean allowTpaFromStrangers) {
-        this.allowTpaFromStrangers = allowTpaFromStrangers;
+    void putConfigBooleanIfAbsent(String key, boolean value) {
+        configBooleans.putIfAbsent(key, value);
+    }
+
+    boolean getConfigBoolean(String key, boolean defaultValue) {
+        return configBooleans.getOrDefault(key, defaultValue);
+    }
+
+    void setConfigBoolean(String key, boolean value) {
+        configBooleans.put(key, value);
+    }
+
+    public boolean allowTpaFromStrangers() {
+        return getConfigBoolean(PlayerConfigKeys.TPA_FROM_STRANGERS, true);
+    }
+
+    public void setAllowTpaFromStrangers(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.TPA_FROM_STRANGERS, value);
     }
 
     public boolean allowTpaHereFromStrangers() {
-        return allowTpaHereFromStrangers;
+        return getConfigBoolean(PlayerConfigKeys.TPAHERE_FROM_STRANGERS, true);
     }
 
-    public void setAllowTpaHereFromStrangers(boolean allowTpaHereFromStrangers) {
-        this.allowTpaHereFromStrangers = allowTpaHereFromStrangers;
+    public void setAllowTpaHereFromStrangers(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.TPAHERE_FROM_STRANGERS, value);
     }
 
     public boolean allowPayFromStrangers() {
-        return allowPayFromStrangers;
+        return getConfigBoolean(PlayerConfigKeys.PAY_FROM_STRANGERS, true);
     }
 
-    public void setAllowPayFromStrangers(boolean allowPayFromStrangers) {
-        this.allowPayFromStrangers = allowPayFromStrangers;
+    public void setAllowPayFromStrangers(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.PAY_FROM_STRANGERS, value);
     }
 
     public boolean paymentSounds() {
-        return paymentSounds;
+        return getConfigBoolean(PlayerConfigKeys.PAYMENT_SOUNDS, true);
     }
 
-    public void setPaymentSounds(boolean paymentSounds) {
-        this.paymentSounds = paymentSounds;
+    public void setPaymentSounds(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.PAYMENT_SOUNDS, value);
     }
 
     public boolean allowTellFromStrangers() {
-        return allowTellFromStrangers;
+        return getConfigBoolean(PlayerConfigKeys.TELL_FROM_STRANGERS, true);
     }
 
-    public void setAllowTellFromStrangers(boolean allowTellFromStrangers) {
-        this.allowTellFromStrangers = allowTellFromStrangers;
+    public void setAllowTellFromStrangers(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.TELL_FROM_STRANGERS, value);
     }
 
     public boolean tellNotificationSounds() {
-        return tellNotificationSounds;
+        return getConfigBoolean(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, true);
     }
 
-    public void setTellNotificationSounds(boolean tellNotificationSounds) {
-        this.tellNotificationSounds = tellNotificationSounds;
+    public void setTellNotificationSounds(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, value);
     }
 
     public boolean scoreboardEnabled() {
-        return scoreboardEnabled;
+        return getConfigBoolean(PlayerConfigKeys.SCOREBOARD_ENABLED, true);
     }
 
-    public void setScoreboardEnabled(boolean scoreboardEnabled) {
-        this.scoreboardEnabled = scoreboardEnabled;
+    public void setScoreboardEnabled(boolean value) {
+        setConfigBoolean(PlayerConfigKeys.SCOREBOARD_ENABLED, value);
+    }
+
+    public boolean tpaAuto() {
+        return tpaAuto;
+    }
+
+    public void setTpaAuto(boolean tpaAuto) {
+        this.tpaAuto = tpaAuto;
     }
 }

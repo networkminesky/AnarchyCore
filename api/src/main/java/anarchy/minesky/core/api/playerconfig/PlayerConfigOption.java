@@ -1,40 +1,41 @@
 package anarchy.minesky.core.api.playerconfig;
 
 /**
- * Opções booleanas expostas no menu {@code /config} (preferências persistidas por jogador).
+ * Opções booleanas padrão do AnarchyCore ({@link PlayerConfigKeys}).
+ *
+ * @deprecated prefira {@link PlayerConfigBooleanOption} registrado ou {@link PlayerConfigKeys} + {@link PlayerConfigAPI#getBoolean(String, org.bukkit.entity.Player)}
  */
+@Deprecated
 public enum PlayerConfigOption {
 
-    /** Aceitar pedidos {@code /tpa} de jogadores marcados como desconhecidos. */
-    TPA_FROM_STRANGERS,
+    TPA_FROM_STRANGERS(PlayerConfigKeys.TPA_FROM_STRANGERS),
+    TPAHERE_FROM_STRANGERS(PlayerConfigKeys.TPAHERE_FROM_STRANGERS),
+    PAY_FROM_STRANGERS(PlayerConfigKeys.PAY_FROM_STRANGERS),
+    PAYMENT_SOUNDS(PlayerConfigKeys.PAYMENT_SOUNDS),
+    TELL_FROM_STRANGERS(PlayerConfigKeys.TELL_FROM_STRANGERS),
+    TELL_NOTIFICATION_SOUNDS(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS),
+    SCOREBOARD_ENABLED(PlayerConfigKeys.SCOREBOARD_ENABLED);
 
-    /** Aceitar pedidos {@code /tpaqui} de desconhecidos. */
-    TPAHERE_FROM_STRANGERS,
+    private final String key;
 
-    /** Aceitar pagamentos de desconhecidos. */
-    PAY_FROM_STRANGERS,
+    PlayerConfigOption(String key) {
+        this.key = key;
+    }
 
-    /** Tocar sons ao receber pagamentos. */
-    PAYMENT_SOUNDS,
+    public String key() {
+        return key;
+    }
 
-    /** Aceitar {@code /tell} de desconhecidos. */
-    TELL_FROM_STRANGERS,
+    public boolean read(PlayerConfigAPI api, org.bukkit.entity.Player player) {
+        return api.getBoolean(key, player);
+    }
 
-    /** Tocar som ao receber mensagem privada. */
-    TELL_NOTIFICATION_SOUNDS,
+    public boolean read(PlayerConfigAPI api, java.util.UUID playerId) {
+        return api.getBoolean(key, playerId);
+    }
 
-    /** Exibir scoreboard (quando integrado). */
-    SCOREBOARD_ENABLED;
-
+    @Deprecated
     public boolean read(PlayerConfigValues values) {
-        return switch (this) {
-            case TPA_FROM_STRANGERS -> values.allowTpaFromStrangers();
-            case TPAHERE_FROM_STRANGERS -> values.allowTpaHereFromStrangers();
-            case PAY_FROM_STRANGERS -> values.allowPayFromStrangers();
-            case PAYMENT_SOUNDS -> values.paymentSounds();
-            case TELL_FROM_STRANGERS -> values.allowTellFromStrangers();
-            case TELL_NOTIFICATION_SOUNDS -> values.tellNotificationSounds();
-            case SCOREBOARD_ENABLED -> values.scoreboardEnabled();
-        };
+        return values.getBoolean(key);
     }
 }

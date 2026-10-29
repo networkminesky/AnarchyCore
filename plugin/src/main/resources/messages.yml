@@ -56,6 +56,13 @@ tpa:
   teleport-failed: "&#FF6B6BNão foi possível teleportar."
   teleport-cancelled-move: "&#FF6B6BTeleporte cancelado porque você se moveu."
   teleport-cancelled-quit: "&#FF6B6BTeleporte cancelado."
+  tpauto:
+    usage: "&#FF6B6BUso: &#FFFFFF/tpauto [on|off]"
+    enabled: "&#7BED9FTPA automático &#FFFFFFligado&#7BED9F. Pedidos serão aceitos sem confirmação."
+    disabled: "&#AAAAAATPA automático &#FFFFFFdesligado&#AAAAAA."
+    already-on: "&#AAAAAATPA automático já está ligado."
+    already-off: "&#AAAAAATPA automático já está desligado."
+    actionbar-active: "&#FF6B6B/tpauto ativado — pedidos TPA aceitos automaticamente"
   actionbar:
     request-tpa: "&#FFD166TPA de &#FFFFFF{player}"
     request-tpahere: "&#FF6B6BTPAQUI de &#FFFFFF{player}"
