@@ -54,6 +54,16 @@ commands:
   editwarp:
     description: Edita nome e ícone de uma warp
     usage: /editwarp <id>
+  home:
+    description: Lista ou teleporta para uma home
+    usage: /home [id|jogador:id]
+    aliases: [homes]
+  sethome:
+    description: Cria ou atualiza uma home
+    usage: /sethome <id>
+  delhome:
+    description: Remove uma home
+    usage: /delhome <id>
   config:
     description: Abre suas preferências MineSky
     usage: /config
@@ -78,6 +88,15 @@ permissions:
   anarchycore.warp.admin:
     description: Permite criar e editar warps com /setwarp e /editwarp
     default: op
+  anarchycore.home.bypasstimer:
+    description: Ignora a espera de 5 segundos parado ao teleportar para home
+    default: op
+  anarchycore.home.others:
+    description: Permite /home jogador:id para visitar homes de outros
+    default: op
+  anarchycore.home.icon:
+    description: Permite editar o ícone das homes no menu
+    default: true
   anarchycore.chat.bypass:
     description: Ignora o limite de antiflood do chat e não recebe avisos de flood
     default: op

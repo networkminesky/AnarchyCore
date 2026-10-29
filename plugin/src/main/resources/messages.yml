@@ -112,11 +112,58 @@ warps:
       edit-body: "&#FFFFFFEditando: &#7BED9F{id}"
       input-display: "Nome público"
       input-display-placeholder: "Ex: &#7BED9FSpawn"
-      input-icon: "Ícone (material)"
-      input-icon-placeholder: "Ex: COMPASS"
+      pick-icon-button: "&#7BED9FEscolher ícone"
+      pick-icon-title: "&#7BED9FÍcone da warp"
       save-button: "&#7BED9FSalvar"
       cancel-button: "&#FF6B6BCancelar"
       cancelled: "&#AAAAAAEdição cancelada."
+
+homes:
+  usage:
+    sethome: "&#FF6B6BUso: &#FFFFFF/sethome <id>"
+    delhome: "&#FF6B6BUso: &#FFFFFF/delhome <id>"
+  error:
+    invalid-id: "&#FF6B6BID inválido. Use letras, números, _ ou - (máx. 32)."
+    not-found: "&#FF6B6BHome &#FFFFFF{home} &#FF6B6Bnão encontrada."
+    world-missing: "&#FF6B6BO mundo da home &#FFFFFF{home} &#FF6B6Bnão está carregado."
+    limit-reached: "&#FF6B6BVocê atingiu o limite de &#FFFFFF{limit} &#FF6B6Bhomes."
+    no-slots: "&#FF6B6BVocê não pode ter homes."
+    database-disabled: "&#FF6B6BBanco de dados indisponível."
+    database: "&#FF6B6BErro ao acessar suas homes."
+  set-success: "&#7BED9FHome &#FFFFFF{home} &#7BED9Fsalva!"
+  delete-success: "&#FF6B6BHome &#FFFFFF{home} &#FF6B6Bremovida."
+  edit-name-success: "&#7BED9FNome da home atualizado!"
+  edit-icon-success: "&#7BED9FÍcone da home atualizado!"
+  countdown-start: "&#FFD166Home &#FFFFFF{home} &#FFD166em &#FFFFFF{seconds}s&#FFD166. &#FF6B6BNão se mova!"
+  teleport-success: "&#7BED9FVocê chegou em &#FFFFFF{home}&#7BED9F!"
+  teleport-failed: "&#FF6B6BNão foi possível teleportar."
+  teleport-cancelled-move: "&#FF6B6BTeleporte cancelado porque você se moveu."
+  teleport-cancelled-quit: "&#FF6B6BTeleporte cancelado."
+  actionbar:
+    countdown: "&#FFD166{home} em &#FFFFFF{seconds}s"
+    teleport-done: "&#7BED9FTeleportado!"
+    cancelled: "&#FF6B6BTeleporte cancelado"
+  dialog:
+    list:
+      title: "&#7BED9FSuas homes"
+    create-slot: "&#7BED9FCriar home"
+    show-all-slots: "&#AAAAAAMostrar tudo"
+    set-title: "&#7BED9FNome da home"
+    set-body: "&#FFFFFFID: &#7BED9F{id}"
+    input-display: "Nome no menu"
+    input-display-placeholder: "Ex: &#7BED9FMinha base"
+    save-button: "&#7BED9FSalvar"
+    cancel-button: "&#FF6B6BCancelar"
+    cancelled: "&#AAAAAACriação cancelada."
+    detail:
+      title: "&#7BED9FHome"
+      body: "&#AAAAAAAcesse rapidamente com &#FFFFFF/home {id}"
+      teleport: "&#7BED9FTeleportar"
+      edit-name: "&#FFD166Editar nome"
+      edit-icon: "&#7BED9FEditar ícone"
+      back: "&#AAAAAAVoltar"
+    edit-name-title: "&#FFD166Editar nome"
+    pick-icon-title: "&#7BED9FEscolher ícone"
 
 config:
   state:

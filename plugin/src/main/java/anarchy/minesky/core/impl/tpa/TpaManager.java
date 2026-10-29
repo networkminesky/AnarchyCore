@@ -2,6 +2,7 @@ package anarchy.minesky.core.impl.tpa;
 
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
@@ -97,9 +98,6 @@ public final class TpaManager {
 
         playerPrefs.markKnown(requester.getUniqueId(), target.getUniqueId());
 
-        TpaSounds.play(requester, settings.requestSend(), settings.soundVolume(), settings.soundPitch());
-        TpaSounds.play(target, settings.requestReceive(), settings.soundVolume(), settings.soundPitch() + 0.2f);
-
         if (type == TpaRequestType.TPA) {
             notify(requester, messages.component("tpa.request-sent-tpa", "target", target.getName()), false);
             notify(target, messages.component("tpa.request-received-tpa", "player", requester.getName()), false);
@@ -158,9 +156,6 @@ public final class TpaManager {
 
         removeRequest(request);
 
-        TpaSounds.play(accepter, settings.accept(), settings.soundVolume(), settings.soundPitch());
-        TpaSounds.play(requester, settings.accept(), settings.soundVolume(), settings.soundPitch());
-
         Player traveller;
         Player destinationAnchor;
         if (request.type() == TpaRequestType.TPA) {
@@ -195,10 +190,8 @@ public final class TpaManager {
         Player requester = Bukkit.getPlayer(request.requesterId());
         removeRequest(request);
 
-        TpaSounds.play(denier, settings.deny(), settings.soundVolume(), settings.soundPitch());
         if (requester != null && requester.isOnline()) {
-            TpaSounds.play(requester, settings.deny(), settings.soundVolume(), 0.8f);
-            notify(requester, messages.component("tpa.denied-requester", "player", denier.getName()), false);
+            notify(requester, messages.component("tpa.denied-requester", "player", denier.getName()), true);
         }
         notify(denier, messages.component("tpa.denied-target", "player",
                 requester != null ? requester.getName() : "?"), false);
@@ -273,7 +266,6 @@ public final class TpaManager {
                     return;
                 }
                 if (success) {
-                    TpaSounds.play(player, settings.teleport(), settings.soundVolume(), settings.soundPitch());
                     notify(player, messages.component("tpa.teleport-success"), false);
                     feedback.send(player, messages.component("tpa.actionbar.teleport-done"));
                 } else {
@@ -292,7 +284,6 @@ public final class TpaManager {
         if (player == null || !player.isOnline()) {
             return;
         }
-        TpaSounds.play(player, settings.cancel(), settings.soundVolume(), 0.7f);
         if (messagePath != null) {
             notify(player, messages.component(messagePath), true);
             feedback.send(player, messages.component("tpa.actionbar.cancelled"));
@@ -343,7 +334,12 @@ public final class TpaManager {
     }
 
     private void notify(Player player, Component message, boolean error) {
-        feedback.send(player, message, error ? FeedbackPriority.HIGH : FeedbackPriority.NORMAL);
+        feedback.send(
+                player,
+                message,
+                error ? FeedbackPriority.HIGH : FeedbackPriority.NORMAL,
+                true,
+                error ? UiSoundMode.ERROR : UiSoundMode.SUCCESS);
     }
 
     public static Player resolvePlayer(String name) {

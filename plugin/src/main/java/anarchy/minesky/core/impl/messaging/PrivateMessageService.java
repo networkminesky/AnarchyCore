@@ -3,6 +3,7 @@ package anarchy.minesky.core.impl.messaging;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.dialogapi.inputs.TextInput;
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
@@ -156,6 +157,6 @@ public final class PrivateMessageService {
     }
 
     private void feedbackPlayer(Player player, Component message) {
-        feedback.send(player, message, FeedbackPriority.NORMAL, true);
+        feedback.send(player, message, FeedbackPriority.HIGH, true, UiSoundMode.ERROR);
     }
 }

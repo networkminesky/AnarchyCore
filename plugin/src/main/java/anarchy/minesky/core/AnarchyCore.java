@@ -10,6 +10,9 @@ import anarchy.minesky.core.command.TpaCommand;
 import anarchy.minesky.core.command.TpaDenyCommand;
 import anarchy.minesky.core.command.TpaHereCommand;
 import anarchy.minesky.core.command.EditWarpCommand;
+import anarchy.minesky.core.command.DelHomeCommand;
+import anarchy.minesky.core.command.HomeCommand;
+import anarchy.minesky.core.command.SetHomeCommand;
 import anarchy.minesky.core.command.SetWarpCommand;
 import anarchy.minesky.core.command.SpawnCommand;
 import anarchy.minesky.core.command.WarpCommand;
@@ -17,6 +20,8 @@ import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.dialogapi.DialogManager;
 import anarchy.minesky.core.impl.feedback.FeedbackListener;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
+import anarchy.minesky.core.impl.sounds.GlobalSoundSettings;
+import anarchy.minesky.core.impl.sounds.UiSoundsAPIImpl;
 import anarchy.minesky.core.impl.locator.LocatorManager;
 import anarchy.minesky.core.impl.messaging.PrivateMessageService;
 import anarchy.minesky.core.impl.tpa.TpaManager;
@@ -25,11 +30,14 @@ import anarchy.minesky.core.impl.warps.WarpManager;
 import anarchy.minesky.core.impl.warps.WarpSettings;
 import anarchy.minesky.core.impl.warps.WarpStorage;
 import anarchy.minesky.core.listener.ChatAntifloodListener;
+import anarchy.minesky.core.impl.homes.HomeManager;
+import anarchy.minesky.core.impl.homes.HomeRepository;
+import anarchy.minesky.core.impl.homes.HomeSettings;
+import anarchy.minesky.core.listener.HomeListener;
 import anarchy.minesky.core.listener.WarpListener;
 import anarchy.minesky.core.impl.database.DatabaseManager;
 import anarchy.minesky.core.impl.database.DatabaseSettings;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
-import anarchy.minesky.core.impl.playerprefs.ConfigSettings;
 import anarchy.minesky.core.impl.playerprefs.PlayerConfigAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesRepository;
 import anarchy.minesky.core.impl.playerdata.PlayerDataAPIImpl;
@@ -49,6 +57,8 @@ public final class AnarchyCore extends JavaPlugin {
     private DialogManager dialogManager;
     private LocatorManager locatorManager;
     private FeedbackManager feedbackManager;
+    private GlobalSoundSettings globalSoundSettings;
+    private UiSoundsAPIImpl uiSoundsApi;
     private PrivateMessageService privateMessageService;
     private ChatAntifloodListener chatAntifloodListener;
     private TpaSettings tpaSettings;
@@ -56,12 +66,14 @@ public final class AnarchyCore extends JavaPlugin {
     private WarpSettings warpSettings;
     private WarpStorage warpStorage;
     private WarpManager warpManager;
+    private HomeSettings homeSettings;
+    private HomeRepository homeRepository;
+    private HomeManager homeManager;
     private DatabaseManager databaseManager;
     private PlayerPreferencesService playerPreferencesService;
     private PlayerConfigAPIImpl playerConfigApi;
     private PlayerDataAPIImpl playerDataApi;
     private ConfigManager configManager;
-    private ConfigSettings configSettings;
 
     @Override
     public void onEnable() {
@@ -79,7 +91,11 @@ public final class AnarchyCore extends JavaPlugin {
         this.dialogManager = new DialogManager(this);
         this.dialogManager.start();
 
-        this.feedbackManager = new FeedbackManager(this);
+        this.globalSoundSettings = new GlobalSoundSettings(this);
+        this.uiSoundsApi = new UiSoundsAPIImpl(this, globalSoundSettings);
+        this.uiSoundsApi.register();
+
+        this.feedbackManager = new FeedbackManager(this, uiSoundsApi);
         this.feedbackManager.start();
         getServer().getPluginManager().registerEvents(new FeedbackListener(feedbackManager), this);
 
@@ -97,8 +113,8 @@ public final class AnarchyCore extends JavaPlugin {
         this.playerConfigApi.register();
         this.playerDataApi = new PlayerDataAPIImpl(this, databaseManager);
         this.playerDataApi.register();
-        this.configSettings = new ConfigSettings(this);
-        this.configManager = new ConfigManager(this, messagesManager, feedbackManager, playerPreferencesService, configSettings);
+        this.configManager = new ConfigManager(
+                this, messagesManager, feedbackManager, playerPreferencesService, uiSoundsApi);
 
         this.privateMessageService = new PrivateMessageService(
                 messagesManager, feedbackManager, playerPreferencesService, configManager);
@@ -111,6 +127,11 @@ public final class AnarchyCore extends JavaPlugin {
 
         this.warpManager = new WarpManager(this, messagesManager, feedbackManager, warpSettings, warpStorage);
         getServer().getPluginManager().registerEvents(new WarpListener(warpManager), this);
+
+        this.homeSettings = new HomeSettings(this);
+        this.homeRepository = new HomeRepository(this, databaseManager, homeSettings);
+        this.homeManager = new HomeManager(this, messagesManager, feedbackManager, homeSettings, homeRepository);
+        getServer().getPluginManager().registerEvents(new HomeListener(homeManager), this);
 
         registerCommands();
 
@@ -156,6 +177,15 @@ public final class AnarchyCore extends JavaPlugin {
         EditWarpCommand editWarpCommand = new EditWarpCommand(messagesManager, warpManager);
         bind("editwarp", editWarpCommand, editWarpCommand);
 
+        HomeCommand homeCommand = new HomeCommand(messagesManager, homeManager);
+        bind("home", homeCommand, homeCommand);
+
+        SetHomeCommand setHomeCommand = new SetHomeCommand(messagesManager, homeManager);
+        bind("sethome", setHomeCommand, setHomeCommand);
+
+        DelHomeCommand delHomeCommand = new DelHomeCommand(messagesManager, homeManager);
+        bind("delhome", delHomeCommand, delHomeCommand);
+
         bind("config", new ConfigCommand(messagesManager, configManager), null);
     }
 
@@ -181,6 +211,12 @@ public final class AnarchyCore extends JavaPlugin {
         if (warpManager != null) {
             warpManager.reloadStorage();
         }
+        if (homeSettings != null) {
+            homeSettings.reload();
+        }
+        if (globalSoundSettings != null) {
+            globalSoundSettings.reload(this);
+        }
         if (feedbackManager != null) {
             feedbackManager.reloadConfig();
         }
@@ -189,9 +225,6 @@ public final class AnarchyCore extends JavaPlugin {
         }
         if (locatorManager != null) {
             locatorManager.reloadConfig();
-        }
-        if (configSettings != null) {
-            configSettings.reload(this);
         }
     }
 
@@ -205,6 +238,11 @@ public final class AnarchyCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (uiSoundsApi != null) {
+            uiSoundsApi.unregister();
+            uiSoundsApi = null;
+        }
+        globalSoundSettings = null;
         if (feedbackManager != null) {
             feedbackManager.stop();
             feedbackManager = null;
@@ -222,6 +260,9 @@ public final class AnarchyCore extends JavaPlugin {
         warpManager = null;
         warpStorage = null;
         warpSettings = null;
+        homeManager = null;
+        homeRepository = null;
+        homeSettings = null;
         if (databaseManager != null) {
             getServer().getOnlinePlayers().forEach(p -> {
                 if (playerPreferencesService != null) {
@@ -239,9 +280,7 @@ public final class AnarchyCore extends JavaPlugin {
             playerDataApi.unregister();
             playerDataApi = null;
         }
-        playerDataApi = null;
         playerPreferencesService = null;
         configManager = null;
-        configSettings = null;
     }
 }

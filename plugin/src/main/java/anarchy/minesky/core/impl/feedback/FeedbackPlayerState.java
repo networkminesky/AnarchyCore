@@ -1,6 +1,7 @@
 package anarchy.minesky.core.impl.feedback;
 
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import net.kyori.adventure.text.Component;
 
 import java.util.ArrayDeque;
@@ -84,5 +85,9 @@ final class FeedbackPlayerState {
         return hasActiveParts() || hasQueued();
     }
 
-    record QueuedMessage(List<Component> parts, FeedbackPriority priority, Component chatMirror) {}
+    record QueuedMessage(
+            List<Component> parts,
+            FeedbackPriority priority,
+            Component chatMirror,
+            UiSoundMode uiSound) {}
 }

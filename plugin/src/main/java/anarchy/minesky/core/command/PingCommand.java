@@ -2,6 +2,8 @@ package anarchy.minesky.core.command;
 
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
+import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -44,13 +46,23 @@ public final class PingCommand implements CommandExecutor, TabCompleter {
         }
 
         if (!player.hasPermission(OTHERS_PERMISSION)) {
-            feedback.send(player, messages.component("commands.no-permission"));
+            feedback.send(
+                    player,
+                    messages.component("commands.no-permission"),
+                    FeedbackPriority.HIGH,
+                    true,
+                    UiSoundMode.ERROR);
             return true;
         }
 
         Player target = resolvePlayer(args[0]);
         if (target == null) {
-            feedback.send(player, messages.component("commands.player-not-found", "player", args[0]));
+            feedback.send(
+                    player,
+                    messages.component("commands.player-not-found", "player", args[0]),
+                    FeedbackPriority.HIGH,
+                    true,
+                    UiSoundMode.ERROR);
             return true;
         }
         showPing(player, target);
@@ -84,7 +96,7 @@ public final class PingCommand implements CommandExecutor, TabCompleter {
         } else {
             message = messages.component("ping.other", "target", target.getName(), "ping", String.valueOf(ping));
         }
-        feedback.send(viewer, message);
+        feedback.send(viewer, message, FeedbackPriority.NORMAL, true, UiSoundMode.SUCCESS);
     }
 
     private static Player resolvePlayer(String name) {

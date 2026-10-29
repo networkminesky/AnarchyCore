@@ -2,6 +2,8 @@ package anarchy.minesky.core.impl.feedback;
 
 import anarchy.minesky.core.api.feedback.FeedbackAPI;
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
+import anarchy.minesky.core.api.sounds.UiSoundsAPI;
 import anarchy.minesky.core.api.text.DialogComponentUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -18,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class FeedbackManager implements FeedbackAPI {
 
     private final Plugin plugin;
+    private final UiSoundsAPI uiSounds;
     private final Map<UUID, FeedbackPlayerState> states = new ConcurrentHashMap<>();
 
     private int maxCharsPerPart = 64;
@@ -25,8 +28,9 @@ public final class FeedbackManager implements FeedbackAPI {
     private long ticksBetweenMessages = 5L;
     private boolean mirrorToChat = true;
 
-    public FeedbackManager(Plugin plugin) {
+    public FeedbackManager(Plugin plugin, UiSoundsAPI uiSounds) {
         this.plugin = plugin;
+        this.uiSounds = uiSounds;
         reloadConfig();
     }
 
@@ -65,13 +69,17 @@ public final class FeedbackManager implements FeedbackAPI {
     }
 
     public void send(Player player, String message, FeedbackPriority priority, boolean mirrorToChat) {
+        send(player, message, priority, mirrorToChat, UiSoundMode.NONE);
+    }
+
+    public void send(Player player, String message, FeedbackPriority priority, boolean mirrorToChat, UiSoundMode uiSound) {
         if (player == null || message == null || message.isBlank() || !plugin.isEnabled()) {
             return;
         }
         String normalized = DialogComponentUtils.normalizeLegacyColors(message.trim());
         Component full = DialogComponentUtils.parse(normalized);
         Component chatMirror = mirrorToChat ? full : null;
-        enqueue(player, FeedbackTextSplitter.split(normalized, maxCharsPerPart), priority, chatMirror);
+        enqueue(player, FeedbackTextSplitter.split(normalized, maxCharsPerPart), priority, chatMirror, uiSound);
     }
 
     @Override
@@ -85,14 +93,26 @@ public final class FeedbackManager implements FeedbackAPI {
     }
 
     public void send(Player player, Component message, FeedbackPriority priority, boolean mirrorToChat) {
+        send(player, message, priority, mirrorToChat, UiSoundMode.NONE);
+    }
+
+    public void send(
+            Player player,
+            Component message,
+            FeedbackPriority priority,
+            boolean mirrorToChat,
+            UiSoundMode uiSound) {
         if (player == null || !player.isOnline() || message == null || !plugin.isEnabled()) {
             return;
         }
         if (priority == null) {
             priority = FeedbackPriority.NORMAL;
         }
+        if (uiSound == null) {
+            uiSound = UiSoundMode.NONE;
+        }
         Component chatMirror = mirrorToChat ? message : null;
-        enqueue(player, FeedbackTextSplitter.split(message, maxCharsPerPart), priority, chatMirror);
+        enqueue(player, FeedbackTextSplitter.split(message, maxCharsPerPart), priority, chatMirror, uiSound);
     }
 
     @Override
@@ -122,9 +142,15 @@ public final class FeedbackManager implements FeedbackAPI {
         return state != null && state.isBusy();
     }
 
-    private void enqueue(Player player, List<Component> parts, FeedbackPriority priority, Component chatMirror) {
+    private void enqueue(
+            Player player,
+            List<Component> parts,
+            FeedbackPriority priority,
+            Component chatMirror,
+            UiSoundMode uiSound) {
         FeedbackPlayerState state = states.computeIfAbsent(player.getUniqueId(), id -> new FeedbackPlayerState());
-        FeedbackPlayerState.QueuedMessage queued = new FeedbackPlayerState.QueuedMessage(parts, priority, chatMirror);
+        FeedbackPlayerState.QueuedMessage queued =
+                new FeedbackPlayerState.QueuedMessage(parts, priority, chatMirror, uiSound);
 
         player.getScheduler().run(plugin, task -> {
             if (!player.isOnline() || !plugin.isEnabled()) {
@@ -163,12 +189,26 @@ public final class FeedbackManager implements FeedbackAPI {
             if (next == null) {
                 return;
             }
+            playUiSound(player, next.priority(), next.uiSound());
             if (next.chatMirror() != null) {
                 player.sendMessage(next.chatMirror());
             }
             state.beginActive(next.parts());
         }
         pump(player, state);
+    }
+
+    private void playUiSound(Player player, FeedbackPriority priority, UiSoundMode mode) {
+        UiSoundMode resolved = mode;
+        if (mode == UiSoundMode.AUTO) {
+            resolved = priority == FeedbackPriority.HIGH ? UiSoundMode.ERROR : UiSoundMode.SUCCESS;
+        }
+        switch (resolved) {
+            case ERROR -> uiSounds.playError(player);
+            case SUCCESS -> uiSounds.playSuccess(player);
+            case TELL -> uiSounds.playTell(player);
+            case NONE, AUTO -> { }
+        }
     }
 
     private void schedulePump(Player player, FeedbackPlayerState state, int generation, long delayTicks) {

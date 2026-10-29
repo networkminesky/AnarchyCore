@@ -29,6 +29,19 @@ feedback:
   mirror-to-chat: true
 
 # =========================================================
+#             Sons de feedback (plugin inteiro)
+# =========================================================
+
+sounds:
+  volume: 0.8
+  pitch: 1.0
+  error: BLOCK_NOTE_BLOCK_DIDGERIDOO
+  success: BLOCK_NOTE_BLOCK_CHIME
+  tell:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BELL
+
+# =========================================================
 #             Antiflood do chat
 # =========================================================
 
@@ -51,13 +64,7 @@ tpa:
   sounds:
     volume: 0.8
     pitch: 1.0
-    request-send: ENTITY_EXPERIENCE_ORB_PICKUP
-    request-receive: BLOCK_NOTE_BLOCK_PLING
-    accept: ENTITY_PLAYER_LEVELUP
-    deny: ENTITY_VILLAGER_NO
     countdown-tick: BLOCK_NOTE_BLOCK_HAT
-    teleport: ENTITY_ENDERMAN_TELEPORT
-    cancel: ENTITY_ITEM_BREAK
 
 # =========================================================
 #             Warps (Folia)
@@ -71,8 +78,29 @@ warps:
     volume: 0.8
     pitch: 1.0
     countdown-tick: BLOCK_NOTE_BLOCK_HAT
-    teleport: ENTITY_ENDERMAN_TELEPORT
-    cancel: ENTITY_ITEM_BREAK
+
+# =========================================================
+#             Homes (MariaDB + Folia)
+# =========================================================
+
+homes:
+  default-limit: 1
+  empty-slots-preview: 4
+  list-header-icon: BLUE_BED
+  default-home-icon: BLUE_BED
+  countdown-seconds: 5
+  move-threshold: 0.5
+  sounds:
+    volume: 0.8
+    pitch: 1.0
+    countdown-tick: BLOCK_NOTE_BLOCK_HAT
+  groups:
+    vip:
+      permission: anarchycore.home.group.vip
+      limit: 5
+    mvp:
+      permission: anarchycore.home.group.mvp
+      limit: 10
 
 # =========================================================
 #             MariaDB / preferências de jogador
@@ -85,11 +113,3 @@ database:
   password: ""
   pool-size: 10
   connection-timeout-ms: 10000
-
-player-config:
-  sounds:
-    volume: 0.7
-    pitch: 1.0
-    toggle-on: ENTITY_EXPERIENCE_ORB_PICKUP
-    toggle-off: BLOCK_NOTE_BLOCK_BASS
-    tell-notify: BLOCK_NOTE_BLOCK_PLING

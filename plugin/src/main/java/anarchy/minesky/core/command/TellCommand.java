@@ -1,5 +1,7 @@
 package anarchy.minesky.core.command;
 
+import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.messaging.PrivateMessageService;
@@ -39,7 +41,12 @@ public final class TellCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length == 0) {
-            feedback.send(player, messages.component("commands.tell-usage"));
+            feedback.send(
+                    player,
+                    messages.component("commands.tell-usage"),
+                    FeedbackPriority.HIGH,
+                    true,
+                    UiSoundMode.ERROR);
             return true;
         }
         String targetName = args[0];

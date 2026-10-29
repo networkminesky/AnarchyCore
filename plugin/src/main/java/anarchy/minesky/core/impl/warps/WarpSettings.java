@@ -1,6 +1,6 @@
 package anarchy.minesky.core.impl.warps;
 
-import anarchy.minesky.core.impl.tpa.TpaSounds;
+import anarchy.minesky.core.impl.sounds.CoreSounds;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -19,8 +19,6 @@ public final class WarpSettings {
     private float soundPitch = 1.0f;
 
     private Sound countdownTick = Sound.BLOCK_NOTE_BLOCK_HAT;
-    private Sound teleport = Sound.ENTITY_ENDERMAN_TELEPORT;
-    private Sound cancel = Sound.ENTITY_ITEM_BREAK;
     private Material listHeaderIcon = Material.RED_BED;
 
     public WarpSettings(Plugin plugin) {
@@ -35,9 +33,7 @@ public final class WarpSettings {
         soundVolume = (float) config.getDouble("warps.sounds.volume", 0.8);
         soundPitch = (float) config.getDouble("warps.sounds.pitch", 1.0);
 
-        countdownTick = TpaSounds.parseSound(config.getString("warps.sounds.countdown-tick"), countdownTick);
-        teleport = TpaSounds.parseSound(config.getString("warps.sounds.teleport"), teleport);
-        cancel = TpaSounds.parseSound(config.getString("warps.sounds.cancel"), cancel);
+        countdownTick = CoreSounds.parseSound(config.getString("warps.sounds.countdown-tick"), countdownTick);
         listHeaderIcon = WarpStorage.parseMaterial(config.getString("warps.list-header-icon"), Material.RED_BED);
     }
 
@@ -59,14 +55,6 @@ public final class WarpSettings {
 
     public Sound countdownTick() {
         return countdownTick;
-    }
-
-    public Sound teleport() {
-        return teleport;
-    }
-
-    public Sound cancel() {
-        return cancel;
     }
 
     public Material listHeaderIcon() {

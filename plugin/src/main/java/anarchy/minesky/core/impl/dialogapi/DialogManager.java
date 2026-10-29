@@ -4,7 +4,9 @@ import anarchy.minesky.core.api.dialogapi.DialogAPI;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.impl.dialogapi.renderers.BedrockDialogRenderer;
 import anarchy.minesky.core.impl.dialogapi.renderers.JavaDialogRenderer;
+import anarchy.minesky.core.api.text.DialogComponentUtils;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
@@ -12,9 +14,11 @@ import org.bukkit.plugin.ServicePriority;
 public final class DialogManager implements DialogAPI {
 
     private final Plugin plugin;
+    private final MaterialPickerDialog materialPicker;
 
     public DialogManager(Plugin plugin) {
         this.plugin = plugin;
+        this.materialPicker = new MaterialPickerDialog(plugin);
     }
 
     public void start() {
@@ -57,5 +61,22 @@ public final class DialogManager implements DialogAPI {
     @Override
     public boolean isBedrock(Player player) {
         return BedrockPlatformDetector.isBedrock(player);
+    }
+
+    @Override
+    public void openMaterialPicker(Player player, String title, java.util.function.Consumer<Material> onSelected) {
+        openMaterialPicker(player, DialogComponentUtils.parse(title), onSelected);
+    }
+
+    @Override
+    public void openMaterialPicker(Player player, Component title, java.util.function.Consumer<Material> onSelected) {
+        if (player == null || !player.isOnline() || onSelected == null || !plugin.isEnabled()) {
+            return;
+        }
+        player.getScheduler().run(plugin, task -> {
+            if (plugin.isEnabled()) {
+                materialPicker.open(player, title, onSelected);
+            }
+        }, null);
     }
 }

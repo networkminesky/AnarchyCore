@@ -2,7 +2,10 @@ package anarchy.minesky.core.api.dialogapi;
 
 import anarchy.minesky.core.api.ServiceProviders;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+
+import java.util.function.Consumer;
 
 public interface DialogAPI {
 
@@ -44,4 +47,11 @@ public interface DialogAPI {
      * Checa se o jogador está conectado via Bedrock (Floodgate).
      */
     boolean isBedrock(Player player);
+
+    /**
+     * Campo de busca + botão Procurar; lista materiais com sprite e nome.
+     */
+    void openMaterialPicker(Player player, String title, Consumer<Material> onSelected);
+
+    void openMaterialPicker(Player player, Component title, Consumer<Material> onSelected);
 }

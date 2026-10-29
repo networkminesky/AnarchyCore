@@ -50,20 +50,34 @@ public final class DialogComponentUtils {
     }
 
     /**
-     * Sprite MiniMessage para ícones de material (blocos vs itens usam atlases diferentes).
+     * Sprite MiniMessage para ícones de material.
+     * Escadas, cercas, placas etc. existem no atlas de {@code items}; usar {@code blocks} só quando não há item.
      */
     public static Component materialIconComponent(Material material) {
         if (material == null || material.isAir()) {
             return Component.empty();
         }
         String key = material.getKey().getKey();
-        String miniMessage = material.isBlock()
-                ? "<sprite:blocks:block/" + key + ">"
-                : "<sprite:items:item/" + key + ">";
+        if (material.isItem()) {
+            Component itemSprite = deserializeSprite("items:item/" + key);
+            if (itemSprite != null) {
+                return itemSprite;
+            }
+        }
+        if (material.isBlock()) {
+            Component blockSprite = deserializeSprite("blocks:block/" + key);
+            if (blockSprite != null) {
+                return blockSprite;
+            }
+        }
+        return deserializeSprite("items:item/" + key);
+    }
+
+    private static Component deserializeSprite(String atlasPath) {
         try {
-            return MiniMessage.miniMessage().deserialize(miniMessage);
+            return MiniMessage.miniMessage().deserialize("<sprite:" + atlasPath + ">");
         } catch (Exception ignored) {
-            return Component.empty();
+            return null;
         }
     }
 

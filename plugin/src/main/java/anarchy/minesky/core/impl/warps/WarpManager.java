@@ -1,9 +1,12 @@
 package anarchy.minesky.core.impl.warps;
 
 import anarchy.minesky.core.api.dialogapi.DialogButton;
+import anarchy.minesky.core.api.dialogapi.MaterialPickerDialogs;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.dialogapi.inputs.TextInput;
+import anarchy.minesky.core.api.text.DialogComponentUtils;
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.tpa.TpaSounds;
@@ -23,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class WarpManager {
 
     private static final String INPUT_DISPLAY = "display";
-    private static final String INPUT_ICON = "icon";
 
     private final Plugin plugin;
     private final MessagesManager messages;
@@ -32,6 +34,7 @@ public final class WarpManager {
     private final WarpStorage storage;
 
     private final Map<UUID, ActiveTeleport> activeTeleports = new ConcurrentHashMap<>();
+    private final Map<UUID, Material> editorIconSelection = new ConcurrentHashMap<>();
 
     public WarpManager(
             Plugin plugin,
@@ -56,6 +59,7 @@ public final class WarpManager {
 
     public void handleQuit(UUID playerId) {
         cancelTeleport(playerId, "warps.teleport-cancelled-quit");
+        editorIconSelection.remove(playerId);
     }
 
     public void openWarpList(Player player) {
@@ -149,24 +153,46 @@ public final class WarpManager {
         String titleKey = create ? "warps.dialog.editor.create-title" : "warps.dialog.editor.edit-title";
         String bodyKey = create ? "warps.dialog.editor.create-body" : "warps.dialog.editor.edit-body";
 
+        Material selectedIcon = editorIconSelection.getOrDefault(player.getUniqueId(), initialIcon);
+        Component body = messages.component(bodyKey, "id", id)
+                .append(Component.newline())
+                .append(DialogComponentUtils.materialIconComponent(selectedIcon))
+                .append(Component.space())
+                .append(Component.text(selectedIcon.name()));
+
         MineSkyDialog.builder(messages.raw(titleKey))
-                .body(messages.format(bodyKey, "id", id))
+                .body(body)
                 .addInput(TextInput.builder(INPUT_DISPLAY, messages.raw("warps.dialog.editor.input-display"))
                         .placeholder(messages.raw("warps.dialog.editor.input-display-placeholder"))
                         .initial(initialDisplay != null ? initialDisplay : id)
                         .maxLength(64)
                         .build())
-                .addInput(TextInput.builder(INPUT_ICON, messages.raw("warps.dialog.editor.input-icon"))
-                        .placeholder(messages.raw("warps.dialog.editor.input-icon-placeholder"))
-                        .initial(initialIcon.name())
-                        .maxLength(64)
+                .button(DialogButton.builder()
+                        .label(messages.raw("warps.dialog.editor.pick-icon-button"))
+                        .width(220)
+                        .onClick((editor, response) -> {
+                            String displayDraft = response.getText(INPUT_DISPLAY, id).trim();
+                            if (displayDraft.isEmpty()) {
+                                displayDraft = id;
+                            }
+                            String finalDisplay = displayDraft;
+                            MaterialPickerDialogs.open(editor, messages.raw("warps.dialog.editor.pick-icon-title"),
+                                    material -> {
+                                        if (material == null || material.isAir()) {
+                                            return;
+                                        }
+                                        editorIconSelection.put(editor.getUniqueId(), material);
+                                        openEditorDialog(editor, id, finalDisplay, material, create);
+                                    });
+                        })
                         .build())
                 .button(messages.raw("warps.dialog.editor.save-button"), (editor, response) -> {
                     String display = response.getText(INPUT_DISPLAY, id).trim();
                     if (display.isEmpty()) {
                         display = id;
                     }
-                    Material icon = WarpStorage.parseMaterial(response.getText(INPUT_ICON), initialIcon);
+                    Material icon = editorIconSelection.getOrDefault(editor.getUniqueId(), selectedIcon);
+                    editorIconSelection.remove(editor.getUniqueId());
                     if (create) {
                         WarpDefinition warp = WarpStorage.createAt(id, display, icon, editor.getLocation());
                         storage.put(warp);
@@ -181,8 +207,10 @@ public final class WarpManager {
                         notify(editor, messages.component("warps.edit-success", "warp", id), false);
                     }
                 })
-                .button(messages.raw("warps.dialog.editor.cancel-button"), p ->
-                        notify(p, messages.component("warps.dialog.editor.cancelled"), false))
+                .button(messages.raw("warps.dialog.editor.cancel-button"), p -> {
+                    editorIconSelection.remove(p.getUniqueId());
+                    notify(p, messages.component("warps.dialog.editor.cancelled"), false);
+                })
                 .show(player);
     }
 
@@ -261,7 +289,6 @@ public final class WarpManager {
                     return;
                 }
                 if (success) {
-                    TpaSounds.play(player, settings.teleport(), settings.soundVolume(), settings.soundPitch());
                     notify(player, messages.component("warps.teleport-success", "warp", warpLabel), false);
                     feedback.send(player, messages.component("warps.actionbar.teleport-done"));
                 } else {
@@ -280,7 +307,6 @@ public final class WarpManager {
         if (player == null || !player.isOnline()) {
             return;
         }
-        TpaSounds.play(player, settings.cancel(), settings.soundVolume(), 0.7f);
         if (messagePath != null) {
             notify(player, messages.component(messagePath), true);
             feedback.send(player, messages.component("warps.actionbar.cancelled"));
@@ -288,7 +314,12 @@ public final class WarpManager {
     }
 
     private void notify(Player player, Component message, boolean error) {
-        feedback.send(player, message, error ? FeedbackPriority.HIGH : FeedbackPriority.NORMAL);
+        feedback.send(
+                player,
+                message,
+                error ? FeedbackPriority.HIGH : FeedbackPriority.NORMAL,
+                true,
+                error ? UiSoundMode.ERROR : UiSoundMode.SUCCESS);
     }
 
     private static final class ActiveTeleport {

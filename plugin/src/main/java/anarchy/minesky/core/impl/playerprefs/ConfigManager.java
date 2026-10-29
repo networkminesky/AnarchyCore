@@ -4,9 +4,10 @@ import anarchy.minesky.core.api.dialogapi.DialogButton;
 import anarchy.minesky.core.api.dialogapi.DialogResponse;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
-import anarchy.minesky.core.impl.tpa.TpaSounds;
+import anarchy.minesky.core.api.sounds.UiSoundsAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -37,19 +38,19 @@ public final class ConfigManager {
     private final MessagesManager messages;
     private final FeedbackManager feedback;
     private final PlayerPreferencesService prefs;
-    private final ConfigSettings settings;
+    private final UiSoundsAPI uiSounds;
 
     public ConfigManager(
             Plugin plugin,
             MessagesManager messages,
             FeedbackManager feedback,
             PlayerPreferencesService prefs,
-            ConfigSettings settings) {
+            UiSoundsAPI uiSounds) {
         this.plugin = plugin;
         this.messages = messages;
         this.feedback = feedback;
         this.prefs = prefs;
-        this.settings = settings;
+        this.uiSounds = uiSounds;
     }
 
     public void openMainMenu(Player player) {
@@ -169,7 +170,6 @@ public final class ConfigManager {
             return;
         }
         apply.accept(next);
-        playToggleSound(player, next);
         notifyToggle(player, optionLabelPath, next);
     }
 
@@ -204,23 +204,23 @@ public final class ConfigManager {
                 .build());
     }
 
-    private void playToggleSound(Player player, boolean enabled) {
-        TpaSounds.play(player,
-                enabled ? settings.toggleOn() : settings.toggleOff(),
-                settings.volume(),
-                settings.pitch());
-    }
-
     private void notifyToggle(Player player, String optionLabelPath, boolean enabled) {
         String messagePath = enabled ? "config.toggle.enabled" : "config.toggle.disabled";
-        feedback.send(player, messages.component(messagePath, "option", messages.raw(optionLabelPath)),
-                FeedbackPriority.NORMAL);
+        feedback.send(
+                player,
+                messages.component(messagePath, "option", messages.raw(optionLabelPath)),
+                FeedbackPriority.NORMAL,
+                true,
+                UiSoundMode.SUCCESS);
     }
 
     public void playTellNotification(Player target) {
+        if (!uiSounds.isTellEnabled()) {
+            return;
+        }
         if (!prefs.get(target).tellNotificationSounds()) {
             return;
         }
-        TpaSounds.play(target, settings.tellNotify(), settings.volume(), settings.pitch() + 0.15f);
+        uiSounds.playTell(target);
     }
 }

@@ -1,6 +1,7 @@
 package anarchy.minesky.core.listener;
 
 import anarchy.minesky.core.api.feedback.FeedbackPriority;
+import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.messaging.PrivateMessageService;
@@ -72,7 +73,8 @@ public final class ChatAntifloodListener implements Listener {
                         player,
                         messages.component("chat.antiflood.wait"),
                         FeedbackPriority.HIGH,
-                        false);
+                        false,
+                        UiSoundMode.ERROR);
                 return;
             }
             timestamps.addLast(now);

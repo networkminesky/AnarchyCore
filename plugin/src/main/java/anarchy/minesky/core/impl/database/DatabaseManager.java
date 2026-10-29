@@ -157,6 +157,29 @@ public final class DatabaseManager {
                           INDEX idx_latest_nickname (latest_nickname)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_homes (
+                          owner_uuid CHAR(36) NOT NULL,
+                          home_id VARCHAR(32) NOT NULL,
+                          display_name VARCHAR(64) NOT NULL,
+                          icon_material VARCHAR(64) NOT NULL DEFAULT 'BLUE_BED',
+                          world VARCHAR(64) NOT NULL,
+                          x DOUBLE NOT NULL,
+                          y DOUBLE NOT NULL,
+                          z DOUBLE NOT NULL,
+                          yaw FLOAT NOT NULL,
+                          pitch FLOAT NOT NULL,
+                          PRIMARY KEY (owner_uuid, home_id),
+                          INDEX idx_owner (owner_uuid)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                try {
+                    statement.execute("""
+                            ALTER TABLE ac_player_homes
+                            ADD COLUMN icon_material VARCHAR(64) NOT NULL DEFAULT 'BLUE_BED'
+                            """);
+                } catch (SQLException ignored) {
+                }
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }
