@@ -188,9 +188,6 @@ config:
       tpa:
         title: "&#FFD166TPA"
         button: "&#FFD166TPA"
-      money:
-        title: "&#7BED9FDinheiro"
-        button: "&#7BED9FDinheiro"
       tell:
         title: "&#7BED9FMensagens privadas"
         button: "&#7BED9FTell / Mensagens"
@@ -200,8 +197,6 @@ config:
   options:
     tpa-strangers: "TPA de desconhecidos"
     tpahere-strangers: "TPAQUI de desconhecidos"
-    pay-strangers: "Pagamento de desconhecidos"
-    payment-sounds: "Sons de pagamento"
     tell-strangers: "Mensagens de desconhecidos"
     tell-sounds: "Sons de notificação"
     scoreboard-enabled: "Exibir scoreboard"

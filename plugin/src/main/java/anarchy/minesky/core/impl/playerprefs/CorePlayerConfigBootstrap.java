@@ -24,25 +24,18 @@ public final class CorePlayerConfigBootstrap {
                 .sortOrder(10)
                 .build());
 
-        registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_MONEY)
-                .title(messages.component("config.dialog.categories.money.title"))
-                .buttonLabel(messages.component("config.dialog.categories.money.button"))
-                .iconMaterial(Material.GOLD_INGOT)
-                .sortOrder(20)
-                .build());
-
         registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_TELL)
                 .title(messages.component("config.dialog.categories.tell.title"))
                 .buttonLabel(messages.component("config.dialog.categories.tell.button"))
                 .iconMaterial(Material.WRITABLE_BOOK)
-                .sortOrder(30)
+                .sortOrder(20)
                 .build());
 
         registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_SCOREBOARD)
                 .title(messages.component("config.dialog.categories.scoreboard.title"))
                 .buttonLabel(messages.component("config.dialog.categories.scoreboard.button"))
                 .iconMaterial(Material.OAK_SIGN)
-                .sortOrder(40)
+                .sortOrder(30)
                 .build());
 
         registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
@@ -54,18 +47,6 @@ public final class CorePlayerConfigBootstrap {
         registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
                         PlayerConfigKeys.TPAHERE_FROM_STRANGERS, PlayerConfigKeys.CATEGORY_TPA)
                 .label(DialogComponentUtils.parse(messages.raw("config.options.tpahere-strangers")))
-                .defaultValue(true)
-                .build());
-
-        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
-                        PlayerConfigKeys.PAY_FROM_STRANGERS, PlayerConfigKeys.CATEGORY_MONEY)
-                .label(DialogComponentUtils.parse(messages.raw("config.options.pay-strangers")))
-                .defaultValue(true)
-                .build());
-
-        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
-                        PlayerConfigKeys.PAYMENT_SOUNDS, PlayerConfigKeys.CATEGORY_MONEY)
-                .label(DialogComponentUtils.parse(messages.raw("config.options.payment-sounds")))
                 .defaultValue(true)
                 .build());
 

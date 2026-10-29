@@ -2,7 +2,7 @@
 
 Preferências do menu **`/config`**: persistidas no MariaDB (quando ativo), cache por jogador, UI em diálogo.
 
-Categorias e opções são **registradas em runtime**. O AnarchyCore registra as categorias padrão (TPA, dinheiro, tell, scoreboard) com a mesma API que outros plugins.
+Categorias e opções são **registradas em runtime**. O AnarchyCore registra TPA, tell e scoreboard; economia/pagamento fica a cargo de outros plugins.
 
 ## Obter a API
 
@@ -64,7 +64,7 @@ values.allowTpaFromStrangers(); // atalhos das chaves do core
 
 Chaves estáveis do core: `PlayerConfigKeys` (ex.: `PlayerConfigKeys.TPA_FROM_STRANGERS`).
 
-## Regras de social (TPA / tell / pay)
+## Regras de social (TPA / tell)
 
 Os toggles do `/config` só valem para **desconhecidos**. Admins e jogadores “conhecidos” seguem regras próprias — use:
 
@@ -72,8 +72,9 @@ Os toggles do `/config` só valem para **desconhecidos**. Admins e jogadores “
 config.canReceiveTpaFrom(alvo, remetente);
 config.canReceiveTpaHereFrom(alvo, remetente);
 config.canReceiveTellFrom(alvo, remetente);
-config.canReceivePayFrom(alvo, remetente);
 ```
+
+Pagamento/desconhecidos: registre no seu plugin de economia (chaves reservadas `PlayerConfigKeys.PAY_FROM_STRANGERS` / `PAYMENT_SOUNDS` ou IDs próprios) e use `canReceivePayFrom` até migrar a lógica para o plugin.
 
 ## Notas
 
