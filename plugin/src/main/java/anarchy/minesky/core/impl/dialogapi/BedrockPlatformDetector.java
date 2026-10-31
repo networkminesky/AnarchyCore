@@ -10,6 +10,9 @@ public final class BedrockPlatformDetector {
 
     public static boolean isBedrock(Player player) {
         if (player == null) return false;
+        if (isMathematicallyBedrock(player.getUniqueId())) {
+            return true;
+        }
         if (!Bukkit.getPluginManager().isPluginEnabled("floodgate")) {
             return false;
         }
@@ -18,5 +21,10 @@ public final class BedrockPlatformDetector {
         } catch (NoClassDefFoundError | Exception ignored) {
             return false;
         }
+    }
+
+    /** Floodgate-style UUID prefix used by Geyser/Bedrock proxies. */
+    public static boolean isMathematicallyBedrock(java.util.UUID uuid) {
+        return uuid != null && uuid.toString().startsWith("00000000-0000-0000-");
     }
 }

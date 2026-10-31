@@ -50,6 +50,20 @@ public final class DialogComponentUtils {
     }
 
     /**
+     * Sprite de item + texto, sem {@link Material} — seguro no bootstrap Paper (antes dos registries Bukkit).
+     *
+     * @param itemKey chave do item vanilla (ex. {@code end_crystal})
+     */
+    public static Component itemSpriteLabel(String itemKey, String text) {
+        Component sprite = deserializeSprite("items:item/" + itemKey);
+        Component label = Component.text(text);
+        if (sprite == null) {
+            return label;
+        }
+        return sprite.append(Component.space()).append(label);
+    }
+
+    /**
      * Sprite MiniMessage para ícones de material.
      * Escadas, cercas, placas etc. existem no atlas de {@code items}; usar {@code blocks} só quando não há item.
      */

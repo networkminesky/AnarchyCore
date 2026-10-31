@@ -1,7 +1,10 @@
 package anarchy.minesky.core;
 
+import anarchy.minesky.core.command.LegacyBukkitBasicCommand;
 import anarchy.minesky.core.command.ConfigCommand;
 import anarchy.minesky.core.command.AnarchyCoreCommand;
+import anarchy.minesky.core.command.HealCommand;
+import anarchy.minesky.core.command.NvCommand;
 import anarchy.minesky.core.command.PingCommand;
 import anarchy.minesky.core.command.ReplyCommand;
 import anarchy.minesky.core.command.TellCommand;
@@ -39,6 +42,7 @@ import anarchy.minesky.core.listener.WarpListener;
 import anarchy.minesky.core.impl.database.DatabaseManager;
 import anarchy.minesky.core.impl.database.DatabaseSettings;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
+import anarchy.minesky.core.impl.playerprefs.EscPauseMenuSupport;
 import anarchy.minesky.core.impl.playerprefs.PlayerConfigAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesRepository;
 import anarchy.minesky.core.impl.playerdata.PlayerDataAPIImpl;
@@ -46,11 +50,20 @@ import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import anarchy.minesky.core.listener.PlayerPreferencesListener;
 import anarchy.minesky.core.listener.PlayerEvents;
 import anarchy.minesky.core.listener.PluginCommandBlockListener;
+import anarchy.minesky.core.command.GuardCommandHandler;
+import anarchy.minesky.core.impl.guard.GuardJoinListener;
+import anarchy.minesky.core.impl.guard.GuardManager;
+import anarchy.minesky.core.impl.guard.GuardPacketListener;
+import anarchy.minesky.core.impl.guard.GuardPlayerSnapshot;
+import anarchy.minesky.core.impl.guard.GuardRepository;
+import anarchy.minesky.core.impl.guard.GuardSettings;
 import anarchy.minesky.core.listener.TpaListener;
 import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
+import com.github.retrooper.packetevents.PacketEvents;
+
+import java.util.List;
 
 public final class AnarchyCore extends JavaPlugin {
 
@@ -75,9 +88,14 @@ public final class AnarchyCore extends JavaPlugin {
     private PlayerConfigAPIImpl playerConfigApi;
     private PlayerDataAPIImpl playerDataApi;
     private ConfigManager configManager;
+    private GuardSettings guardSettings;
+    private GuardManager guardManager;
+    private GuardCommandHandler guardCommandHandler;
+    private GuardPacketListener guardPacketListener;
 
     @Override
     public void onEnable() {
+        EscPauseMenuSupport.logRegistryStatus(this);
         saveDefaultConfig();
 
         this.messagesManager = new MessagesManager(this);
@@ -135,6 +153,19 @@ public final class AnarchyCore extends JavaPlugin {
         this.homeManager = new HomeManager(this, messagesManager, feedbackManager, homeSettings, homeRepository);
         getServer().getPluginManager().registerEvents(new HomeListener(homeManager), this);
 
+        this.guardSettings = new GuardSettings(this);
+        GuardRepository guardRepository = new GuardRepository(this, databaseManager, guardSettings);
+        GuardPlayerSnapshot guardSnapshots = new GuardPlayerSnapshot();
+        this.guardManager = new GuardManager(this, guardSettings, guardRepository, guardSnapshots);
+        this.guardPacketListener = new GuardPacketListener(this, guardManager);
+        if (PacketEvents.getAPI() == null) {
+            getLogger().severe("PacketEvents API indisponível — AnarchyGuard desativado. Instale o plugin packetevents.");
+        } else {
+            PacketEvents.getAPI().getEventManager().registerListener(guardPacketListener);
+        }
+        getServer().getPluginManager().registerEvents(new GuardJoinListener(guardManager), this);
+        this.guardCommandHandler = new GuardCommandHandler(guardManager, messagesManager, feedbackManager);
+
         registerCommands();
 
         getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
@@ -146,62 +177,72 @@ public final class AnarchyCore extends JavaPlugin {
 
     private void registerCommands() {
         PingCommand pingCommand = new PingCommand(messagesManager, feedbackManager);
-        bind("ping", pingCommand, pingCommand);
+        bind("ping", "Mostra seu ping ou o de outro jogador", List.of(), pingCommand, pingCommand);
+
+        HealCommand healCommand = new HealCommand(messagesManager, feedbackManager);
+        bind("heal", "Restaura sua vida ou a de outro jogador", List.of(), healCommand, healCommand);
+
+        NvCommand nvCommand = new NvCommand(messagesManager, feedbackManager);
+        bind("nv", "Ativa ou desativa visão noturna", List.of(), nvCommand, nvCommand);
 
         TellCommand tellCommand = new TellCommand(messagesManager, feedbackManager, privateMessageService);
-        bind("tell", tellCommand, tellCommand);
+        bind("tell", "Envia mensagem privada", List.of("msg", "w", "whisper"), tellCommand, tellCommand);
 
-        bind("r", new ReplyCommand(messagesManager, privateMessageService), null);
+        bind("r", "Responde a última mensagem privada", List.of("reply"), new ReplyCommand(messagesManager, privateMessageService), null);
 
-        AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(this, messagesManager, feedbackManager);
-        bind("anarchycore", coreCommand, coreCommand);
+        AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(this, messagesManager, feedbackManager, guardCommandHandler);
+        bind("anarchycore", "Comandos administrativos do AnarchyCore", List.of("acore", "minesky"), coreCommand, coreCommand);
 
         TpaCommand tpaCommand = new TpaCommand(messagesManager, tpaManager);
-        bind("tpa", tpaCommand, tpaCommand);
+        bind("tpa", "Pede teleporte até um jogador", List.of(), tpaCommand, tpaCommand);
 
         TpaHereCommand tpaHereCommand = new TpaHereCommand(messagesManager, tpaManager);
-        bind("tpaqui", tpaHereCommand, tpaHereCommand);
+        bind("tpaqui", "Pede para puxar um jogador até você", List.of("tpahere"), tpaHereCommand, tpaHereCommand);
 
         TpaAcceptCommand tpaAcceptCommand = new TpaAcceptCommand(messagesManager, tpaManager);
-        bind("tpaceitar", tpaAcceptCommand, tpaAcceptCommand);
+        bind("tpaceitar", "Aceita um pedido de TPA", List.of("tpaccept"), tpaAcceptCommand, tpaAcceptCommand);
 
         TpaDenyCommand tpaDenyCommand = new TpaDenyCommand(messagesManager, tpaManager);
-        bind("tpanegar", tpaDenyCommand, tpaDenyCommand);
+        bind("tpanegar", "Nega um pedido de TPA", List.of("tpdeny"), tpaDenyCommand, tpaDenyCommand);
 
         TpAutoCommand tpAutoCommand = new TpAutoCommand(messagesManager, tpaManager);
-        bind("tpauto", tpAutoCommand, tpAutoCommand);
+        bind("tpauto", "Aceita pedidos de TPA automaticamente", List.of(), tpAutoCommand, tpAutoCommand);
 
         WarpCommand warpCommand = new WarpCommand(messagesManager, warpManager);
-        bind("warp", warpCommand, warpCommand);
+        bind("warp", "Lista ou teleporta para uma warp", List.of("warps"), warpCommand, warpCommand);
 
-        bind("spawn", new SpawnCommand(messagesManager, warpManager), null);
+        bind("spawn", "Teleporta para a warp spawn", List.of(), new SpawnCommand(messagesManager, warpManager), null);
 
         SetWarpCommand setWarpCommand = new SetWarpCommand(messagesManager, warpManager);
-        bind("setwarp", setWarpCommand, setWarpCommand);
+        bind("setwarp", "Cria uma warp na sua posição", List.of(), setWarpCommand, setWarpCommand);
 
         EditWarpCommand editWarpCommand = new EditWarpCommand(messagesManager, warpManager);
-        bind("editwarp", editWarpCommand, editWarpCommand);
+        bind("editwarp", "Edita nome e ícone de uma warp", List.of(), editWarpCommand, editWarpCommand);
 
         HomeCommand homeCommand = new HomeCommand(messagesManager, homeManager);
-        bind("home", homeCommand, homeCommand);
+        bind("home", "Lista ou teleporta para uma home", List.of("homes"), homeCommand, homeCommand);
 
         SetHomeCommand setHomeCommand = new SetHomeCommand(messagesManager, homeManager);
-        bind("sethome", setHomeCommand, setHomeCommand);
+        bind("sethome", "Cria ou atualiza uma home", List.of(), setHomeCommand, setHomeCommand);
 
         DelHomeCommand delHomeCommand = new DelHomeCommand(messagesManager, homeManager);
-        bind("delhome", delHomeCommand, delHomeCommand);
+        bind("delhome", "Remove uma home", List.of(), delHomeCommand, delHomeCommand);
 
-        bind("config", new ConfigCommand(messagesManager, configManager), null);
+        bind(
+                "config",
+                "Abre suas preferências MineSky",
+                List.of("configurar", "personalizar", "preferencias", "settings"),
+                new ConfigCommand(messagesManager, configManager),
+                null);
     }
 
-    private void bind(String name, CommandExecutor executor, TabCompleter tabCompleter) {
-        PluginCommand command = getCommand(name);
-        if (command == null) {
-            getLogger().severe("Comando '" + name + "' não definido em plugin.yml");
-            return;
-        }
-        command.setExecutor(executor);
-        command.setTabCompleter(tabCompleter);
+    private void bind(
+            String name,
+            String description,
+            List<String> aliases,
+            CommandExecutor executor,
+            TabCompleter tabCompleter) {
+        registerCommand(name, description, aliases, new LegacyBukkitBasicCommand(name, executor, tabCompleter));
     }
 
     public void reloadPlugin() {
@@ -231,6 +272,13 @@ public final class AnarchyCore extends JavaPlugin {
         if (locatorManager != null) {
             locatorManager.reloadConfig();
         }
+        if (guardSettings != null) {
+            guardSettings.reload();
+        }
+    }
+
+    public GuardManager guardManager() {
+        return guardManager;
     }
 
     public PlayerPreferencesService playerPreferences() {
@@ -243,6 +291,14 @@ public final class AnarchyCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (guardManager != null) {
+            guardManager.shutdown();
+            guardManager = null;
+        }
+        if (guardPacketListener != null && PacketEvents.getAPI() != null) {
+            PacketEvents.getAPI().getEventManager().unregisterListener(guardPacketListener);
+            guardPacketListener = null;
+        }
         if (uiSoundsApi != null) {
             uiSoundsApi.unregister();
             uiSoundsApi = null;

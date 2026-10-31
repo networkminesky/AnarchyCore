@@ -58,9 +58,15 @@ public final class PlayerPreferencesListener implements Listener {
             return;
         }
         Player player = connection.getPlayer();
-        player.getScheduler().run(plugin, task -> {
-            player.closeDialog();
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        // Não chamar closeDialog(): isso volta ao menu ESC e o showDialog do /config se perde.
+        player.getScheduler().runDelayed(plugin, task -> {
+            if (!plugin.isEnabled() || !player.isOnline()) {
+                return;
+            }
             config.openMainMenu(player);
-        }, null);
+        }, null, 1L);
     }
 }

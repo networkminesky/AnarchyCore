@@ -210,6 +210,26 @@ public final class DatabaseManager {
                             """);
                 } catch (SQLException ignored) {
                 }
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_guard_strikes (
+                          player_uuid CHAR(36) PRIMARY KEY,
+                          strikes INT NOT NULL DEFAULT 0
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_guard_history (
+                          id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                          player_uuid CHAR(36) NOT NULL,
+                          recorded_at BIGINT NOT NULL,
+                          trigger_source VARCHAR(64) NOT NULL,
+                          passed TINYINT(1) NOT NULL,
+                          detected_mods JSON NOT NULL,
+                          client_brand VARCHAR(128) NOT NULL DEFAULT '',
+                          ping INT NOT NULL DEFAULT 0,
+                          detail TEXT NULL,
+                          INDEX idx_guard_history_player_time (player_uuid, recorded_at DESC)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }

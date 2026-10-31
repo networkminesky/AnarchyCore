@@ -10,11 +10,37 @@ commands:
   reply-no-target: "&cVocê não tem ninguém para responder."
   tell-self: "&cVocê não pode enviar mensagem privada para si mesmo."
   reload-success: "&aAnarchyCore recarregado com sucesso."
-  reload-usage: "&cUso: /anarchycore reload"
+  reload-usage: "&cUso: /anarchycore reload|guard ..."
+
+guard:
+  usage: "&cUso: /anarchycore guard <check|info|history> <jogador>"
+  check-usage: "&cUso: /anarchycore guard check <jogador>"
+  info-usage: "&cUso: /anarchycore guard info <jogador>"
+  history-usage: "&cUso: /anarchycore guard history <jogador>"
+  check-started: "&aVerificação Guard iniciada para &f{player}&a."
+  check-bypass: "&e{player} &7ignorado — possui bypass do Guard."
+  already-checking: "&c{player} &cjá está em verificação."
+  skipped: "&cNão foi possível verificar &f{player}&c (Bedrock ou Guard desativado)."
+  info-header: "&6Guard — &f{player}"
+  history-header: "&6Histórico Guard de &f{player} &7({count} entradas)"
+  history-empty: "&7Nenhum registro encontrado."
 
 ping:
   self: "&7Seu ping: &f{ping}ms"
   other: "&7Ping de &f{target}&7: &f{ping}ms"
+
+heal:
+  self: "&#7BED9FVida restaurada!"
+  other-executor: "&#7BED9FVida de &#FFFFFF{target} &#7BED9Frestaurada!"
+  other-target: "&#7BED9F&#FFFFFF{player} &#7BED9Frestaurou sua vida."
+
+nv:
+  enabled-self: "&#7BED9FVisão noturna ativada."
+  disabled-self: "&#AAAAAAVisão noturna desativada."
+  enabled-other-executor: "&#7BED9FVisão noturna de &#FFFFFF{target} &#7BED9Fativada."
+  enabled-other-target: "&#7BED9F&#FFFFFF{player} &#7BED9Fativou sua visão noturna."
+  disabled-other-executor: "&#AAAAAAVisão noturna de &#FFFFFF{target} &#AAAAAAdesativada."
+  disabled-other-target: "&#AAAAAA&#FFFFFF{player} &#AAAAAAdesativou sua visão noturna."
 
 tell:
   outgoing: "&7Você sussurrou para &f{target}&7: &f{message}"

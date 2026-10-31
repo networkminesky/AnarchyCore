@@ -1,0 +1,103 @@
+# AnarchyGuard — detecção de clientes/mod via exploit de placa (MC-265322)
+# Apenas jogadores Java; Bedrock (Floodgate + UUID 00000000-0000-0000-*) é ignorado.
+
+enabled: true
+
+# Logs detalhados no console (eco de cada linha, batch, resultado final)
+debug: true
+
+# Envia BlockChange → BlockEntity → OpenSign → Close → Air no mesmo tick (invisível na tela de loading)
+instant-packet-burst: true
+
+# Eco igual à translation-key conta como vanilla (evita falso positivo quando o client não aplica fallback)
+accept-translation-key-echo: true
+
+# Ticks após o join antes de iniciar a verificação (20 = 1s)
+join-delay-ticks: 40
+
+# Linhas por placa virtual (máx. 4). Probes extras usam várias placas em sequência.
+lines-per-sign: 4
+
+# Usado só se instant-packet-burst: false
+open-delay-ticks: 0
+close-delay-ticks: 0
+response-timeout-ticks: 80
+
+# Negativo = blocos abaixo do jogador (placa nunca visível). Positivo = acima.
+virtual-sign-y-offset: -5
+
+permission-bypass: anarchycore.guard.bypass
+
+# Probes: placas enviam {"translate":"...","fallback":"..."}.
+# Detecção só se o eco for diferente do fallback E da translation-key (quando accept-translation-key-echo: true).
+probes:
+  meteorclient:
+    name: Meteor Client
+    translation-key: key.meteor-client.open-gui
+    fallback: acg7f2meteor9k
+    enabled: true
+  wurst:
+    name: Wurst Client
+    translation-key: key.wurst.zoom
+    fallback: acg4b8wurst1m
+    enabled: true
+  freecam:
+    name: Freecam
+    translation-key: key.freecam.toggle
+    fallback: acg3c1freecam5p
+    enabled: true
+  freecam2:
+    name: Freecam
+    translation-key: key.fcam.toggle
+    fallback: anarchyguard
+    enabled: true
+  cevapi-ui-utils:
+    name: UI Utils
+    translation-key: key.uiutils.restore_screen
+    fallback: anarchyguard
+    enabled: true
+  autototem-mod:
+    name: Auto Totem Mod
+    translation-key: key.uiutils.restore_screen
+    fallback: anarchyguard
+    enabled: true
+  silly-autototem-mod:
+    name: Auto Totem Mod
+    translation-key: category.sillysautototem
+    fallback: anarchyguard
+    enabled: true
+  seedcrackerx:
+    name: SeedCrackerX
+    translation-key: settings.outline
+    fallback: anarchyguard
+    enabled: true
+  liquidbounce:
+    name: LiquidBounce
+    translation-key: liquidbounce.command.clear.description
+    fallback: acg9d2liquid6q
+    enabled: true
+  advanced-xray:
+    name: Advanced X-Ray
+    translation-key: xray.single.add
+    fallback: acg8e3xray4r
+    enabled: true
+  xenon:
+    name: Xenon Client
+    translation-key: key.xenon.zoom
+    fallback: acg1f6xenon7s
+    enabled: true
+
+punishments:
+  reason: "Cliente/mod proibido detectado ({probe})"
+  kick-message: "&c{reason}"
+  steps:
+    - type: kick
+    - type: console
+      commands:
+        - "tempban {player} 1h {reason}"
+    - type: console
+      commands:
+        - "tempban {player} 12h {reason}"
+
+history:
+  max-entries-per-player: 100

@@ -1,0 +1,18 @@
+name: AnarchyCore
+version: '${version}'
+main: anarchy.minesky.core.AnarchyCore
+bootstrapper: anarchy.minesky.core.AnarchyCoreBootstrap
+api-version: '26.3'
+folia-supported: true
+description: MineSky AnarchyCore
+
+dependencies:
+  server:
+    packetevents:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true

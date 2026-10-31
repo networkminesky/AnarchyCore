@@ -19,6 +19,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.List;
+
 public final class ConfigManager {
 
     private final MessagesManager messages;
@@ -57,9 +59,10 @@ public final class ConfigManager {
                 .multiActionColumns(1)
                 .onSubmit((pl, res) -> syncCategory(pl, category, res));
 
-        for (PlayerConfigBooleanOption option : category.booleanOptions()) {
-            boolean current = option.get(player);
-            builder.addInput(BoolInput.of(dialogKey(option), option.label(), current));
+        List<PlayerConfigBooleanOption> options = category.booleanOptions();
+        for (int i = 0; i < options.size(); i++) {
+            PlayerConfigBooleanOption option = options.get(i);
+            builder.addInput(BoolInput.of(inputKey(i), option.label(), option.get(player)));
         }
 
         addApply(builder);
@@ -68,9 +71,11 @@ public final class ConfigManager {
     }
 
     private void syncCategory(Player player, PlayerConfigCategory category, DialogResponse res) {
-        for (PlayerConfigBooleanOption option : category.booleanOptions()) {
+        List<PlayerConfigBooleanOption> options = category.booleanOptions();
+        for (int i = 0; i < options.size(); i++) {
+            PlayerConfigBooleanOption option = options.get(i);
             boolean current = option.get(player);
-            boolean next = res.getBoolean(dialogKey(option), current);
+            boolean next = res.getBoolean(inputKey(i), current);
             if (next == current) {
                 continue;
             }
@@ -128,8 +133,11 @@ public final class ConfigManager {
         uiSounds.playTell(target);
     }
 
-    /** Chave estável no diálogo (sem {@code :}). */
-    private static String dialogKey(PlayerConfigBooleanOption option) {
-        return option.key().replace(':', '_');
+    /**
+     * Nome de input do Paper: só letras, dígitos e {@code _}.
+     * Chaves {@code namespace:id} são longas demais / inválidas para o diálogo.
+     */
+    private static String inputKey(int index) {
+        return "o" + index;
     }
 }

@@ -3,6 +3,11 @@ plugins {
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.23"
 }
 
+repositories {
+    maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
+    maven { url = uri("https://repo.codemc.io/repository/maven-snapshots/") }
+}
+
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
@@ -20,6 +25,7 @@ dependencies {
     }
 
     compileOnly("me.clip:placeholderapi:2.12.3")
+    compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
 
     implementation("com.zaxxer:HikariCP:6.2.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.3")
@@ -30,6 +36,9 @@ tasks {
     processResources {
         val props = mapOf("version" to project.version)
         filesMatching("plugin.yml") {
+            expand(props)
+        }
+        filesMatching("paper-plugin.yml") {
             expand(props)
         }
     }

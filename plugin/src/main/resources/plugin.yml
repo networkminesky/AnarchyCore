@@ -2,75 +2,20 @@ name: AnarchyCore
 version: '${version}'
 
 main: anarchy.minesky.core.AnarchyCore
-bootstrapper: anarchy.minesky.core.AnarchyCoreBootstrap
 api-version: '26.3'
 load: POSTWORLD
+depend:
+  - packetevents
 softdepend:
+  - PlaceholderAPI
   - floodgate
+  - ProtocolLib
+  - ViaVersion
+  - ViaBackwards
+  - ViaRewind
+  - Geyser-Spigot
 
 folia-supported: true
-
-commands:
-  ping:
-    description: Mostra seu ping ou o de outro jogador
-    usage: /ping [jogador]
-  tell:
-    description: Envia mensagem privada
-    usage: /tell <jogador> [mensagem]
-    aliases: [msg, w, whisper]
-  r:
-    description: Responde a última mensagem privada
-    usage: /r <mensagem>
-    aliases: [reply]
-  anarchycore:
-    description: Comandos administrativos do AnarchyCore
-    usage: /anarchycore reload
-    aliases: [acore, minesky]
-  tpa:
-    description: Pede teleporte até um jogador
-    usage: /tpa <jogador>
-  tpaqui:
-    description: Pede para puxar um jogador até você
-    usage: /tpaqui <jogador>
-    aliases: [tpahere]
-  tpaceitar:
-    description: Aceita um pedido de TPA
-    usage: /tpaceitar [jogador]
-    aliases: [tpaccept]
-  tpanegar:
-    description: Nega um pedido de TPA
-    usage: /tpanegar [jogador]
-    aliases: [tpdeny]
-  tpauto:
-    description: Aceita pedidos de TPA automaticamente
-    usage: /tpauto [on|off]
-  warp:
-    description: Lista ou teleporta para uma warp
-    usage: /warp [id]
-    aliases: [warps]
-  spawn:
-    description: Teleporta para a warp spawn
-    usage: /spawn
-  setwarp:
-    description: Cria uma warp na sua posição
-    usage: /setwarp <id>
-  editwarp:
-    description: Edita nome e ícone de uma warp
-    usage: /editwarp <id>
-  home:
-    description: Lista ou teleporta para uma home
-    usage: /home [id|jogador:id]
-    aliases: [homes]
-  sethome:
-    description: Cria ou atualiza uma home
-    usage: /sethome <id>
-  delhome:
-    description: Remove uma home
-    usage: /delhome <id>
-  config:
-    description: Abre suas preferências MineSky
-    usage: /config
-    aliases: [configurar, personalizar, preferencias, settings]
 
 permissions:
   anarchycore.admin:
@@ -102,4 +47,22 @@ permissions:
     default: true
   anarchycore.chat.bypass:
     description: Ignora o limite de antiflood do chat e não recebe avisos de flood
+    default: op
+  anarchycore.heal:
+    description: Permite usar /heal para restaurar a própria vida
+    default: op
+  anarchycore.heal.others:
+    description: Permite usar /heal em outros jogadores
+    default: op
+  anarchycore.nv:
+    description: Permite usar /nv para alternar visão noturna
+    default: true
+  anarchycore.nv.others:
+    description: Permite usar /nv em outros jogadores
+    default: op
+  anarchycore.guard.admin:
+    description: Permite /anarchycore guard check, info e history
+    default: op
+  anarchycore.guard.bypass:
+    description: Ignora verificação AnarchyGuard no join
     default: op
