@@ -66,3 +66,6 @@ permissions:
   anarchycore.guard.bypass:
     description: Ignora verificação AnarchyGuard no join
     default: op
+  anarchycore.guard.fog.bypass:
+    description: Enxerga jogadores através do Fog of War
+    default: op

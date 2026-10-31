@@ -13,7 +13,8 @@ commands:
   reload-usage: "&cUso: /anarchycore reload|guard ..."
 
 guard:
-  usage: "&cUso: /anarchycore guard <check|info|history> <jogador>"
+  usage: "&cUso: /anarchycore guard <check|info|history|fog> [jogador]"
+  fog-status: "&6Fog of War: &f{state} &7| {strategy} | jogadores &f{players} &7| ocultações &f{hidden}"
   check-usage: "&cUso: /anarchycore guard check <jogador>"
   info-usage: "&cUso: /anarchycore guard info <jogador>"
   history-usage: "&cUso: /anarchycore guard history <jogador>"

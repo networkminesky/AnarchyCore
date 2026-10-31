@@ -101,3 +101,36 @@ punishments:
 
 history:
   max-entries-per-player: 100
+
+# Fog of War — esconde jogadores sem linha de visão (Folia, por jogador).
+fog-of-war:
+  enabled: true
+  # DESTROY (recomendado) ou TELEPORT
+  strategy: DESTROY
+  check-interval-ticks: 2
+  permission-bypass: anarchycore.guard.fog.bypass
+  # Mundos sem FoW (ex.: spawn/lobby). Sem scheduler por jogador nesses mundos.
+  disabled-worlds: []
+  # Jogadores com estas metadata keys não entram no FoW (observador nem alvo).
+  vanish:
+    metadata-keys:
+      - vanished
+      - vanish
+  visibility:
+    max-distance: 48.0
+    min-distance: 4.0
+    anticipation: 1.1
+    velocity-ticks: 5.0
+  out-of-sight:
+    threshold: 3
+    # Co-seno mínimo olhar→alvo (3D). Menor = cone mais amplo. ~0.25 ≈ 75° do centro; ~0.17 ≈ 80°.
+    fov-cosine: 0.25
+    # Reduz o limite enquanto o alvo já está visível (evita piscar na borda do FOV).
+    fov-hysteresis: 0.08
+  nametag:
+    enabled: true
+    move-interval-ticks: 4
+    move-epsilon: 0.2
+  locator-bar:
+    hide-when-stealthed: true
+

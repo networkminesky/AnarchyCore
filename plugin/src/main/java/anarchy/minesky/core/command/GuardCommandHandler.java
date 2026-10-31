@@ -5,6 +5,7 @@ import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.guard.GuardHistoryEntry;
 import anarchy.minesky.core.impl.guard.GuardManager;
 import anarchy.minesky.core.impl.guard.GuardPlayerSnapshot;
+import anarchy.minesky.core.impl.guard.fog.FogOfWarManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -21,11 +22,13 @@ public final class GuardCommandHandler {
     public static final String PERMISSION = "anarchycore.guard.admin";
 
     private final GuardManager guardManager;
+    private final FogOfWarManager fogOfWar;
     private final MessagesManager messages;
     private final FeedbackManager feedback;
 
-    public GuardCommandHandler(GuardManager guardManager, MessagesManager messages, FeedbackManager feedback) {
+    public GuardCommandHandler(GuardManager guardManager, FogOfWarManager fogOfWar, MessagesManager messages, FeedbackManager feedback) {
         this.guardManager = guardManager;
+        this.fogOfWar = fogOfWar;
         this.messages = messages;
         this.feedback = feedback;
     }
@@ -45,6 +48,7 @@ public final class GuardCommandHandler {
             case "check" -> handleCheck(sender, args);
             case "info" -> handleInfo(sender, args);
             case "history" -> handleHistory(sender, args);
+            case "fog" -> handleFog(sender);
             default -> {
                 send(sender, messages.component("guard.usage"));
                 yield true;
@@ -54,12 +58,23 @@ public final class GuardCommandHandler {
 
     public List<String> tabComplete(String[] args) {
         if (args.length == 2) {
-            return filterPrefix(args[1], List.of("check", "info", "history"));
+            return filterPrefix(args[1], List.of("check", "info", "history", "fog"));
         }
         if (args.length == 3 && ("check".equalsIgnoreCase(args[1]) || "info".equalsIgnoreCase(args[1]) || "history".equalsIgnoreCase(args[1]))) {
             return PlayerNameTabComplete.onlineNames(args, 2);
         }
         return List.of();
+    }
+
+    private boolean handleFog(CommandSender sender) {
+        String state = fogOfWar.settings().enabled() ? "ativo" : "desativado";
+        send(sender, messages.component(
+                "guard.fog-status",
+                "state", state,
+                "strategy", fogOfWar.settings().strategy().name(),
+                "players", Integer.toString(fogOfWar.trackedPlayers()),
+                "hidden", Integer.toString(fogOfWar.hiddenPairs())));
+        return true;
     }
 
     private boolean handleCheck(CommandSender sender, String[] args) {

@@ -57,6 +57,9 @@ import anarchy.minesky.core.impl.guard.GuardPacketListener;
 import anarchy.minesky.core.impl.guard.GuardPlayerSnapshot;
 import anarchy.minesky.core.impl.guard.GuardRepository;
 import anarchy.minesky.core.impl.guard.GuardSettings;
+import anarchy.minesky.core.impl.guard.fog.FogListener;
+import anarchy.minesky.core.impl.guard.fog.FogOfWarManager;
+import anarchy.minesky.core.impl.guard.fog.FogSettings;
 import anarchy.minesky.core.listener.TpaListener;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.TabCompleter;
@@ -92,6 +95,8 @@ public final class AnarchyCore extends JavaPlugin {
     private GuardManager guardManager;
     private GuardCommandHandler guardCommandHandler;
     private GuardPacketListener guardPacketListener;
+    private FogSettings fogSettings;
+    private FogOfWarManager fogOfWar;
 
     @Override
     public void onEnable() {
@@ -164,7 +169,11 @@ public final class AnarchyCore extends JavaPlugin {
             PacketEvents.getAPI().getEventManager().registerListener(guardPacketListener);
         }
         getServer().getPluginManager().registerEvents(new GuardJoinListener(guardManager), this);
-        this.guardCommandHandler = new GuardCommandHandler(guardManager, messagesManager, feedbackManager);
+        this.fogSettings = new FogSettings(this);
+        this.fogOfWar = new FogOfWarManager(this, fogSettings, locatorManager);
+        this.fogOfWar.start();
+        getServer().getPluginManager().registerEvents(new FogListener(fogOfWar), this);
+        this.guardCommandHandler = new GuardCommandHandler(guardManager, fogOfWar, messagesManager, feedbackManager);
 
         registerCommands();
 
@@ -275,6 +284,9 @@ public final class AnarchyCore extends JavaPlugin {
         if (guardSettings != null) {
             guardSettings.reload();
         }
+        if (fogOfWar != null) {
+            fogOfWar.reload();
+        }
     }
 
     public GuardManager guardManager() {
@@ -291,6 +303,10 @@ public final class AnarchyCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (fogOfWar != null) {
+            fogOfWar.stop();
+            fogOfWar = null;
+        }
         if (guardManager != null) {
             guardManager.shutdown();
             guardManager = null;
