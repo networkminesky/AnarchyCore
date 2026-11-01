@@ -48,6 +48,15 @@ permissions:
   anarchycore.chat.bypass:
     description: Ignora o limite de antiflood do chat e não recebe avisos de flood
     default: op
+  anarchycore.chat.color:
+    description: Permite usar cores no chat (&, &#RRGGBB e MiniMessage)
+    default: op
+  anarchycore.chat.url:
+    description: Permite enviar URLs clicáveis no chat
+    default: op
+  anarchycore.broadcast:
+    description: Permite enviar anúncios globais com /broadcast
+    default: op
   anarchycore.heal:
     description: Permite usar /heal para restaurar a própria vida
     default: op

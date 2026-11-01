@@ -1,5 +1,6 @@
 package anarchy.minesky.core;
 
+import anarchy.minesky.core.command.BroadcastCommand;
 import anarchy.minesky.core.command.LegacyBukkitBasicCommand;
 import anarchy.minesky.core.command.ConfigCommand;
 import anarchy.minesky.core.command.AnarchyCoreCommand;
@@ -144,7 +145,7 @@ public final class AnarchyCore extends JavaPlugin {
         this.privateMessageService = new PrivateMessageService(
                 messagesManager, feedbackManager, playerPreferencesService, configManager);
         this.chatAntifloodListener = new ChatAntifloodListener(
-                this, messagesManager, feedbackManager, privateMessageService);
+                this, messagesManager, feedbackManager, privateMessageService, playerConfigApi);
         getServer().getPluginManager().registerEvents(chatAntifloodListener, this);
 
         this.tpaManager = new TpaManager(this, messagesManager, feedbackManager, tpaSettings, playerPreferencesService);
@@ -193,6 +194,9 @@ public final class AnarchyCore extends JavaPlugin {
 
         NvCommand nvCommand = new NvCommand(messagesManager, feedbackManager);
         bind("nv", "Ativa ou desativa visão noturna", List.of(), nvCommand, nvCommand);
+
+        BroadcastCommand broadcastCommand = new BroadcastCommand(messagesManager, feedbackManager, globalSoundSettings);
+        bind("broadcast", "Envia um anúncio global", List.of("bc", "anuncio"), broadcastCommand, broadcastCommand);
 
         TellCommand tellCommand = new TellCommand(messagesManager, feedbackManager, privateMessageService);
         bind("tell", "Envia mensagem privada", List.of("msg", "w", "whisper"), tellCommand, tellCommand);

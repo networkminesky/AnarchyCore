@@ -38,6 +38,13 @@ public final class CorePlayerConfigBootstrap {
                 .sortOrder(30)
                 .build());
 
+        registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_CHAT)
+                .title(messages.component("config.dialog.categories.chat.title"))
+                .buttonLabel(messages.component("config.dialog.categories.chat.button"))
+                .iconMaterial(Material.WRITTEN_BOOK)
+                .sortOrder(40)
+                .build());
+
         registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
                         PlayerConfigKeys.TPA_FROM_STRANGERS, PlayerConfigKeys.CATEGORY_TPA)
                 .label(DialogComponentUtils.parse(messages.raw("config.options.tpa-strangers")))
@@ -66,6 +73,18 @@ public final class CorePlayerConfigBootstrap {
                         PlayerConfigKeys.SCOREBOARD_ENABLED, PlayerConfigKeys.CATEGORY_SCOREBOARD)
                 .label(DialogComponentUtils.parse(messages.raw("config.options.scoreboard-enabled")))
                 .defaultValue(true)
+                .build());
+
+        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
+                        PlayerConfigKeys.CHAT_GLOBAL_ENABLED, PlayerConfigKeys.CATEGORY_CHAT)
+                .label(DialogComponentUtils.parse(messages.raw("config.options.chat-global-enabled")))
+                .defaultValue(true)
+                .build());
+
+        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
+                        PlayerConfigKeys.CHAT_HEADS_ENABLED, PlayerConfigKeys.CATEGORY_CHAT)
+                .label(DialogComponentUtils.parse(messages.raw("config.options.chat-heads-enabled")))
+                .defaultValue(false)
                 .build());
     }
 }

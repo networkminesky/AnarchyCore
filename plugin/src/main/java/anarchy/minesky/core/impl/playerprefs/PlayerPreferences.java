@@ -19,6 +19,8 @@ public final class PlayerPreferences {
         prefs.configBooleans.put(PlayerConfigKeys.TELL_FROM_STRANGERS, true);
         prefs.configBooleans.put(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, true);
         prefs.configBooleans.put(PlayerConfigKeys.SCOREBOARD_ENABLED, true);
+        prefs.configBooleans.put(PlayerConfigKeys.CHAT_GLOBAL_ENABLED, true);
+        prefs.configBooleans.put(PlayerConfigKeys.CHAT_HEADS_ENABLED, false);
         return prefs;
     }
 

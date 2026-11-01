@@ -26,6 +26,13 @@ public final class CoreSounds {
         CoreSounds.play(player, settings.tell(), settings.volume(), settings.pitch() + 0.1f);
     }
 
+    public static void playBroadcast(Player player, GlobalSoundSettings settings) {
+        if (!settings.broadcastEnabled()) {
+            return;
+        }
+        CoreSounds.play(player, settings.broadcast(), settings.volume(), settings.pitch());
+    }
+
     public static Sound parseSound(String name, Sound fallback) {
         if (name == null || name.isBlank()) {
             return fallback;

@@ -1,11 +1,6 @@
 package anarchy.minesky.core.listener;
 
-import anarchy.minesky.core.AnarchyCore;
-import anarchy.minesky.core.api.text.DialogComponentUtils;
 import anarchy.minesky.core.utils.Utils;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,26 +24,6 @@ public class PlayerEvents implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         e.quitMessage(null);
-    }
-
-    @EventHandler
-    public void onChat(AsyncChatEvent e) {
-        final Player p = e.getPlayer();
-
-        String prefix = "";
-        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            prefix = PlaceholderAPI.setPlaceholders(p, "%luckperms_prefix%");
-        }
-        final Component name = DialogComponentUtils.parse(prefix).append(p.displayName());
-
-        final Component chat = Component.text("<")
-                .append(name)
-                .append(Component.text(">"))
-                .append(Component.space())
-                .append(e.message());
-
-        e.setCancelled(true);
-        Bukkit.broadcast(chat);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

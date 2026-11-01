@@ -12,6 +12,8 @@ public final class GlobalSoundSettings {
     private Sound success = Sound.BLOCK_NOTE_BLOCK_CHIME;
     private Sound tell = Sound.BLOCK_NOTE_BLOCK_BELL;
     private boolean tellEnabled = true;
+    private Sound broadcast = Sound.ENTITY_EXPERIENCE_ORB_PICKUP;
+    private boolean broadcastEnabled = true;
 
     public GlobalSoundSettings(Plugin plugin) {
         reload(plugin);
@@ -25,6 +27,8 @@ public final class GlobalSoundSettings {
         success = CoreSounds.parseSound(config.getString("sounds.success"), success);
         tell = CoreSounds.parseSound(config.getString("sounds.tell.sound"), tell);
         tellEnabled = config.getBoolean("sounds.tell.enabled", true);
+        broadcast = CoreSounds.parseSound(config.getString("sounds.broadcast.sound"), broadcast);
+        broadcastEnabled = config.getBoolean("sounds.broadcast.enabled", true);
     }
 
     public float volume() {
@@ -49,5 +53,13 @@ public final class GlobalSoundSettings {
 
     public boolean tellEnabled() {
         return tellEnabled;
+    }
+
+    public Sound broadcast() {
+        return broadcast;
+    }
+
+    public boolean broadcastEnabled() {
+        return broadcastEnabled;
     }
 }

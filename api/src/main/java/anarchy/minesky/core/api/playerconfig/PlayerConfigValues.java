@@ -39,6 +39,14 @@ public record PlayerConfigValues(Map<String, Boolean> booleans) {
         return getBoolean(PlayerConfigKeys.SCOREBOARD_ENABLED);
     }
 
+    public boolean chatGlobalEnabled() {
+        return getBoolean(PlayerConfigKeys.CHAT_GLOBAL_ENABLED);
+    }
+
+    public boolean chatHeadsEnabled() {
+        return getBoolean(PlayerConfigKeys.CHAT_HEADS_ENABLED);
+    }
+
     /**
      * Pref do comando {@code /tpauto} (não faz parte do menu {@code /config}).
      */

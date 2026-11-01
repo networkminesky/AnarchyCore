@@ -1,16 +1,24 @@
 package anarchy.minesky.core.api.text;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 
+import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class DialogComponentUtils {
 
     private static final Pattern HEX_AMPERSAND = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    private static final Pattern CHAT_URL = Pattern.compile("(https?://\\S+|www\\.\\S+)", Pattern.CASE_INSENSITIVE);
 
     private DialogComponentUtils() {}
 
@@ -46,6 +54,77 @@ public final class DialogComponentUtils {
             return MiniMessage.miniMessage().deserialize(input);
         } catch (Exception e) {
             return Component.text(input);
+        }
+    }
+
+    /**
+     * Torna URLs detectadas no texto clicáveis ({@link ClickEvent.Action#OPEN_URL}).
+     */
+    public static Component applyClickableUrls(Component component) {
+        if (component == null || component.equals(Component.empty())) {
+            return component == null ? Component.empty() : component;
+        }
+        return component.replaceText(
+                TextReplacementConfig.builder()
+                        .match(CHAT_URL)
+                        .replacement((match, input) -> linkForUrlMatch(match.group(), input))
+                        .build());
+    }
+
+    private static Component linkForUrlMatch(String matched, TextComponent.Builder input) {
+        UrlSlice slice = trimUrlPunctuation(matched);
+        Style style = input.build().style();
+        if (slice.url().isEmpty()) {
+            return Component.text(matched, style);
+        }
+        String href = slice.url().regionMatches(true, 0, "www.", 0, 4)
+                ? "https://" + slice.url()
+                : slice.url();
+        if (!isAllowedChatUrl(href)) {
+            return Component.text(matched, style);
+        }
+        Component linked = Component.text(slice.display(), style
+                        .colorIfAbsent(NamedTextColor.AQUA)
+                        .decorationIfAbsent(TextDecoration.UNDERLINED, TextDecoration.State.TRUE))
+                .clickEvent(ClickEvent.openUrl(href));
+        if (slice.leading().isEmpty() && slice.trailing().isEmpty()) {
+            return linked;
+        }
+        return Component.text(slice.leading(), style)
+                .append(linked)
+                .append(Component.text(slice.trailing(), style));
+    }
+
+    private static UrlSlice trimUrlPunctuation(String matched) {
+        int start = 0;
+        int end = matched.length();
+        while (end > start && isTrailingUrlPunctuation(matched.charAt(end - 1))) {
+            end--;
+        }
+        return new UrlSlice(matched.substring(0, start), matched.substring(start, end), matched.substring(end));
+    }
+
+    private static boolean isTrailingUrlPunctuation(char c) {
+        return c == '.' || c == ',' || c == ';' || c == ':' || c == '!' || c == '?' || c == ')'
+                || c == ']' || c == '}' || c == '"';
+    }
+
+    private static boolean isAllowedChatUrl(String href) {
+        try {
+            URI uri = URI.create(href);
+            String scheme = uri.getScheme();
+            if (scheme == null) {
+                return false;
+            }
+            return "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private record UrlSlice(String leading, String url, String trailing) {
+        String display() {
+            return url;
         }
     }
 

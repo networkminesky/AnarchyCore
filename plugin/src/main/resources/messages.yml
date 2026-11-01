@@ -58,6 +58,11 @@ tell:
 chat:
   antiflood:
     wait: "&cAguarde um pouco antes de enviar outra mensagem."
+  global-disabled: "&#FF6B6BVocê desativou o chat global. Reative em &#FFFFFF/config &#FF6B6Bpara enviar mensagens."
+
+broadcast:
+  usage: "&#FF6B6BUso: &#FFFFFF/broadcast [-s] <mensagem>"
+  sent: "&#7BED9FBroadcast enviado."
 
 tpa:
   usage:
@@ -221,10 +226,15 @@ config:
       scoreboard:
         title: "&#FFFFFFScoreboard"
         button: "&#FFFFFFScoreboard"
+      chat:
+        title: "&#7BED9FChat global"
+        button: "&#7BED9FChat"
   options:
     tpa-strangers: "TPA de desconhecidos"
     tpahere-strangers: "TPAQUI de desconhecidos"
     tell-strangers: "Mensagens de desconhecidos"
     tell-sounds: "Sons de notificação"
     scoreboard-enabled: "Exibir scoreboard"
+    chat-global-enabled: "Participar do chat global"
+    chat-heads-enabled: "Cabeças dos jogadores no chat"
 
