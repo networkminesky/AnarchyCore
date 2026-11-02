@@ -186,8 +186,9 @@ public final class MaterialPickerDialog {
             displayNameCache.clear();
 
             for (Material material : Material.values()) {
-                // Ignora materiais legados (LEGACY_*), ar e materiais que não são blocos nem itens
-                if (material.isLegacy() || material.isAir() || (!material.isItem() && !material.isBlock())) {
+                // Só itens obtíveis no jogo (mesmo critério de WarpStorage.parseMaterial).
+                // Blocos sem forma de item (bolo com vela, fogo, placas de parede, etc.) não devem aparecer.
+                if (material.isLegacy() || material.isAir() || !material.isItem()) {
                     continue;
                 }
                 String localized = resolveLocalizedName(material, translations);
