@@ -1,16 +1,19 @@
 package anarchy.minesky.core.listener;
 
 import anarchy.minesky.core.AnarchyCore;
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
 import net.skinsrestorer.api.property.InputDataResult;
 import net.skinsrestorer.api.property.SkinProperty;
 import net.skinsrestorer.api.storage.PlayerStorage;
 import net.skinsrestorer.api.storage.SkinStorage;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.Optional;
@@ -26,57 +29,67 @@ public class SkinJoinApplier implements Listener {
         this.plugin = plugin;
     }
 
+    /**
+     * Roda antes do jogador existir no mundo (100% assíncrono).
+     * Injeta as texturas no PlayerProfile da sessão.
+     */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onAsyncPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
+            return;
+        }
+
+        UUID uuid = event.getUniqueId();
+        String playerName = event.getName();
+
+        try {
+            PlayerStorage playerStorage = skinsRestorerAPI.getPlayerStorage();
+            SkinStorage skinStorage = skinsRestorerAPI.getSkinStorage();
+
+            // 1. Tenta pegar do cache local / banco de dados (0ms de atraso)
+            Optional<SkinProperty> skinOpt = playerStorage.getSkinOfPlayer(uuid);
+
+            // 2. Primeira vez do jogador: consulta a Mojang e salva o vínculo para sempre
+            if (skinOpt.isEmpty()) {
+                Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(playerName);
+                if (result.isPresent()) {
+                    InputDataResult data = result.get();
+                    playerStorage.setSkinIdOfPlayer(uuid, data.getIdentifier());
+                    skinOpt = Optional.of(data.getProperty());
+                }
+            }
+
+            // 3. Injeta a textura diretamente no perfil nativo do Paper/Folia antes de logar
+            if (skinOpt.isPresent()) {
+                SkinProperty property = skinOpt.get();
+                PlayerProfile profile = event.getPlayerProfile();
+                profile.setProperty(new ProfileProperty("textures", property.getValue(), property.getSignature()));
+                event.setPlayerProfile(profile);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Erro ao carregar perfil no PreLogin para " + playerName + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Fallback para garantir compatibilidade caso algum plugin externo
+     * precise que o método da API do SkinsRestorer seja chamado.
+     */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // 1. Se o jogador já possui texturas válidas (ex: original / enviado pelo proxy), não reaplica
-        if (!player.getPlayerProfile().getTextures().isEmpty()) {
+        // Se o profile já tem texturas (injetadas com sucesso no PreLogin), não precisa fazer nada!
+        if (player.getPlayerProfile().hasProperty("textures")) {
             return;
         }
 
-        UUID uuid = player.getUniqueId();
-        String playerName = player.getName();
-
-        // 2. Executa a checagem no Scheduler Assíncrono do Folia (não trava o tick do mundo nem de entidades)
-        Bukkit.getAsyncScheduler().runNow(plugin, asyncTask -> {
+        // Caso tenha falhado no PreLogin, tenta aplicar assincronamente como contingência
+        player.getScheduler().runDelayed(plugin, task -> {
+            if (!player.isOnline()) return;
             try {
-                PlayerStorage playerStorage = skinsRestorerAPI.getPlayerStorage();
-                SkinStorage skinStorage = skinsRestorerAPI.getSkinStorage();
-
-                // 3. Tenta buscar a skin já vinculada/armazenada no cache/banco local
-                Optional<SkinProperty> skinOpt = playerStorage.getSkinOfPlayer(uuid);
-
-                // Se NÃO estiver no cache local (primeira vez que o jogador entra)
-                if (skinOpt.isEmpty()) {
-                    Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(playerName);
-                    if (result.isPresent()) {
-                        InputDataResult data = result.get();
-                        // SALVA o vínculo no banco do SkinsRestorer para que NUNCA MAIS consulte a Mojang nos próximos joins
-                        playerStorage.setSkinIdOfPlayer(uuid, data.getIdentifier());
-                        skinOpt = Optional.of(data.getProperty());
-                    }
-                }
-
-                // 4. Se encontrou a skin (seja do cache local ou recém-baixada)
-                if (skinOpt.isPresent()) {
-                    SkinProperty skinProperty = skinOpt.get();
-
-                    // Agenda a aplicação de volta na thread da entidade do jogador
-                    player.getScheduler().runDelayed(plugin, entityTask -> {
-                        if (!player.isOnline()) return;
-
-                        try {
-                            // Aplica DIRETAMENTE a propriedade resolvida (evita requisições à Mojang)
-                            skinsRestorerAPI.getSkinApplier(Player.class).applySkin(player, skinProperty);
-                        } catch (Exception e) {
-                            plugin.getLogger().warning("Erro ao aplicar skin para " + playerName + ": " + e.getMessage());
-                        }
-                    }, null, 5L); // 5 ticks (~250ms) é suficiente para o cliente terminar de spawnar
-                }
-            } catch (Exception e) {
-                plugin.getLogger().warning("Erro no processamento de skin para " + playerName + ": " + e.getMessage());
-            }
-        });
+                skinsRestorerAPI.getSkinApplier(Player.class).applySkin(player);
+            } catch (Exception ignored) {}
+        }, null, 5L);
     }
 }
