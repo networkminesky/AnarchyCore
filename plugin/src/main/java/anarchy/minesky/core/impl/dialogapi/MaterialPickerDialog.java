@@ -186,7 +186,8 @@ public final class MaterialPickerDialog {
             displayNameCache.clear();
 
             for (Material material : Material.values()) {
-                if (material.isAir() || (!material.isItem() && !material.isBlock())) {
+                // Ignora materiais legados (LEGACY_*), ar e materiais que não são blocos nem itens
+                if (material.isLegacy() || material.isAir() || (!material.isItem() && !material.isBlock())) {
                     continue;
                 }
                 String localized = resolveLocalizedName(material, translations);
@@ -197,7 +198,13 @@ public final class MaterialPickerDialog {
                 String normEng = stripAccents(english);
                 String rawLocLower = localized.toLowerCase(Locale.ROOT);
                 String rawName = material.name().toLowerCase(Locale.ROOT);
-                String key = material.getKey().getKey().replace('_', ' ');
+
+                String key;
+                try {
+                    key = material.getKey().getKey().replace('_', ' ');
+                } catch (Throwable ignored) {
+                    key = rawName.replace('_', ' ');
+                }
 
                 String haystack = (normLoc + " " + rawLocLower + " " + normEng + " " + rawName + " " + key).trim();
                 String[] words = (normLoc + " " + normEng).split("\\s+");
@@ -253,8 +260,16 @@ public final class MaterialPickerDialog {
         }
 
         private static String resolveLocalizedName(Material material, Map<String, String> translations) {
+            if (material.isLegacy()) {
+                return formatMaterialName(material);
+            }
             if (translations != null && !translations.isEmpty()) {
-                String key = material.getKey().getKey();
+                String key;
+                try {
+                    key = material.getKey().getKey();
+                } catch (Throwable ignored) {
+                    key = material.name().toLowerCase(Locale.ROOT);
+                }
                 String name = null;
 
                 // 1. material.translationKey() (Translatable do Paper/Adventure)

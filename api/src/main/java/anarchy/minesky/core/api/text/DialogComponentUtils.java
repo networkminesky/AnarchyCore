@@ -12,6 +12,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 
 import java.net.URI;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -212,7 +213,7 @@ public final class DialogComponentUtils {
      * Resolve corretamente os atlas de itens e blocos vanilla sem exibir texturas ausentes.
      */
     public static Component materialIconComponent(Material material) {
-        if (material == null || material.isAir()) {
+        if (material == null || material.isAir() || material.isLegacy()) {
             return Component.empty();
         }
         String spritePath = resolveMaterialSpritePath(material);
@@ -221,10 +222,15 @@ public final class DialogComponentUtils {
     }
 
     public static String resolveMaterialSpritePath(Material material) {
-        if (material == null || material.isAir()) {
+        if (material == null || material.isAir() || material.isLegacy()) {
             return "";
         }
-        String key = material.getKey().getKey();
+        String key;
+        try {
+            key = material.getKey().getKey();
+        } catch (Throwable ignored) {
+            key = material.name().toLowerCase(Locale.ROOT);
+        }
 
         // 1. Tabela de override manual de blocos especiais
         String override = SPRITE_OVERRIDES.get(key);
