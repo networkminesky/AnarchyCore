@@ -128,6 +128,8 @@ fog-of-war:
     # Reduz o limite enquanto o alvo já está visível (evita piscar na borda do FOV).
     fov-hysteresis: 0.08
   nametag:
+    # Armor stand com o nick simples enquanto o corpo está oculto.
+    # Com AnarchyTags, isso fica desligado: a tag 3D some no fog e volta ao reaparecer.
     enabled: true
     move-interval-ticks: 4
     move-epsilon: 0.2

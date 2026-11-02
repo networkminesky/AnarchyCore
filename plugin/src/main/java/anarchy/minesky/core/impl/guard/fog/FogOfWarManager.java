@@ -46,6 +46,11 @@ public final class FogOfWarManager {
     private final Map<PairKey, FogPairState> pairs = new ConcurrentHashMap<>();
     private final Map<UUID, Set<Integer>> hidden = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledTask> tasks = new ConcurrentHashMap<>();
+    private final Set<PairKey> tagHold = ConcurrentHashMap.newKeySet();
+    private final Map<PairKey, Integer> tagEpoch = new ConcurrentHashMap<>();
+    private final FogNametagIntegration tagsNone = FogNametagIntegration.NONE;
+    private volatile FogNametagIntegration tags = tagsNone;
+    private volatile boolean tagsAttached;
     private FogPacketListener packetListener;
 
     public FogOfWarManager(Plugin plugin, FogSettings settings, LocatorManager locator) {
@@ -64,6 +69,7 @@ public final class FogOfWarManager {
         }
         packetListener = new FogPacketListener(this);
         PacketEvents.getAPI().getEventManager().registerListener(packetListener);
+        attachTags();
         for (Player player : Bukkit.getOnlinePlayers()) {
             track(player);
         }
@@ -88,9 +94,46 @@ public final class FogOfWarManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             clearObserver(player);
         }
+        detachTags();
         snapshots.clear();
         pairs.clear();
         hidden.clear();
+    }
+
+    public void attachTags() {
+        if (tagsAttached || !settings.enabled()) {
+            return;
+        }
+        FogNametagIntegration opened = FogNametagIntegration.open(plugin, this);
+        if (opened == tagsNone) {
+            return;
+        }
+        tags = opened;
+        tags.start();
+        tagsAttached = true;
+    }
+
+    public void detachTags() {
+        tags.stop();
+        tags = tagsNone;
+        tagsAttached = false;
+        tagHold.clear();
+        tagEpoch.clear();
+    }
+
+    /**
+     * Filtro do AnarchyTags. {@code tagHold} continua verdadeiro por alguns ticks
+     * depois do respawn para o AnarchyTags despawnar o text display (o DESTROY do
+     * jogador leva o passageiro junto) antes de montar a tag de novo.
+     */
+    public boolean allowsExternalNametag(Player viewer, Player target) {
+        if (viewer == null || target == null) {
+            return false;
+        }
+        if (isHidden(viewer.getUniqueId(), target.getEntityId())) {
+            return false;
+        }
+        return !tagHold.contains(new PairKey(viewer.getUniqueId(), target.getUniqueId()));
     }
 
     public void track(Player player) {
@@ -142,6 +185,8 @@ public final class FogOfWarManager {
         snapshots.remove(id);
         hidden.remove(id);
         pairs.keySet().removeIf(key -> key.observer().equals(id) || key.target().equals(id));
+        tagHold.removeIf(key -> key.observer().equals(id) || key.target().equals(id));
+        tagEpoch.keySet().removeIf(key -> key.observer().equals(id) || key.target().equals(id));
         for (Map.Entry<UUID, Set<Integer>> entry : hidden.entrySet()) {
             if (!entry.getValue().remove(entityId)) {
                 continue;
@@ -428,6 +473,7 @@ public final class FogOfWarManager {
 
     private void hide(Player observer, FogSnapshot target, FogPairState state) {
         hidden.computeIfAbsent(observer.getUniqueId(), ignored -> ConcurrentHashMap.newKeySet()).add(target.entityId);
+        holdExternalTag(observer, target);
         if (settings.strategy() == FogSettings.Strategy.TELEPORT) {
             teleport(observer, target.entityId, target.x, -64.0, target.z, target.yaw, target.pitch, false);
         } else {
@@ -447,27 +493,70 @@ public final class FogOfWarManager {
 
         if (settings.strategy() == FogSettings.Strategy.TELEPORT) {
             teleport(observer, target.entityId, target.x, target.y, target.z, target.yaw, target.pitch, target.onGround);
+        } else {
+            send(observer, new WrapperPlayServerSpawnEntity(
+                    target.entityId,
+                    Optional.of(target.playerId),
+                    EntityTypes.PLAYER,
+                    new Vector3d(target.x, target.y, target.z),
+                    target.pitch,
+                    target.bodyYaw,
+                    target.yaw,
+                    0,
+                    Optional.of(new Vector3d(0, 0, 0))));
+            send(observer, new WrapperPlayServerEntityHeadLook(target.entityId, target.yaw));
+            sendSkinParts(observer, target);
+            sendEquipment(observer, target.entityId, target.equipment);
+        }
+        scheduleExternalTagRelease(observer, target);
+    }
+
+    private void holdExternalTag(Player observer, FogSnapshot target) {
+        if (!tagsAttached) {
             return;
         }
+        PairKey key = new PairKey(observer.getUniqueId(), target.playerId);
+        tagEpoch.merge(key, 1, Integer::sum);
+        tagHold.add(key);
+        Player live = Bukkit.getPlayer(target.playerId);
+        if (live != null && live.isOnline()) {
+            tags.onVisibilityChanged(live);
+        }
+    }
 
-        send(observer, new WrapperPlayServerSpawnEntity(
-                target.entityId,
-                Optional.of(target.playerId),
-                EntityTypes.PLAYER,
-                new Vector3d(target.x, target.y, target.z),
-                target.pitch,
-                target.bodyYaw,
-                target.yaw,
-                0,
-                Optional.of(new Vector3d(0, 0, 0))));
-        send(observer, new WrapperPlayServerEntityHeadLook(target.entityId, target.yaw));
-        sendSkinParts(observer, target);
-        sendEquipment(observer, target.entityId, target.equipment);
+    /**
+     * O destroy do jogador também apaga o text display no cliente, mas o AnarchyTags
+     * ainda acha que ele existe. Segura o filtro, pede o despawn e só então mostra de novo.
+     */
+    private void scheduleExternalTagRelease(Player observer, FogSnapshot target) {
+        if (!tagsAttached) {
+            return;
+        }
+        PairKey key = new PairKey(observer.getUniqueId(), target.playerId);
+        tagHold.add(key);
+        int epoch = tagEpoch.getOrDefault(key, 0);
+        Player live = Bukkit.getPlayer(target.playerId);
+        if (live == null || !live.isOnline()) {
+            return;
+        }
+        live.getScheduler().run(plugin, task -> {
+            if (!live.isOnline() || tagEpoch.getOrDefault(key, -1) != epoch) {
+                return;
+            }
+            tags.onVisibilityChanged(live);
+            live.getScheduler().runDelayed(plugin, later -> {
+                if (!live.isOnline() || tagEpoch.getOrDefault(key, -1) != epoch) {
+                    return;
+                }
+                tagHold.remove(key);
+                tags.onVisibilityChanged(live);
+            }, null, 2L);
+        }, null);
     }
 
     private void syncHiddenExtras(Player observer, FogSnapshot target, FogPairState state) {
         boolean stealthed = target.stealthed();
-        if (settings.nametagEnabled() && !stealthed) {
+        if (settings.nametagEnabled() && !tagsAttached && !stealthed) {
             int nametag = nametagId(target.entityId);
             if (!state.nametagSpawned) {
                 spawnNametag(observer, target, nametag);

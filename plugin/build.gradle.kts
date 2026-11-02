@@ -6,6 +6,7 @@ plugins {
 repositories {
     maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-snapshots/") }
+    maven { url = uri("https://jitpack.io") }
 }
 
 java {
@@ -26,6 +27,7 @@ dependencies {
 
     compileOnly("me.clip:placeholderapi:2.12.3")
     compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
+    compileOnly("com.github.networkminesky:AnarchyTags:1.0.0")
 
     implementation("com.zaxxer:HikariCP:6.2.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.3")
