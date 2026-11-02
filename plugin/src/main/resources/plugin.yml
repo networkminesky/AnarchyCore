@@ -11,6 +11,7 @@ softdepend:
   - floodgate
   - ProtocolLib
   - ViaVersion
+  - SkinsRestorer
   - ViaBackwards
   - ViaRewind
   - Geyser-Spigot

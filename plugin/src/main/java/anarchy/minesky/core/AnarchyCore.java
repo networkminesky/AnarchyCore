@@ -34,12 +34,10 @@ import anarchy.minesky.core.impl.tpa.TpaSettings;
 import anarchy.minesky.core.impl.warps.WarpManager;
 import anarchy.minesky.core.impl.warps.WarpSettings;
 import anarchy.minesky.core.impl.warps.WarpStorage;
-import anarchy.minesky.core.listener.ChatAntifloodListener;
+import anarchy.minesky.core.listener.*;
 import anarchy.minesky.core.impl.homes.HomeManager;
 import anarchy.minesky.core.impl.homes.HomeRepository;
 import anarchy.minesky.core.impl.homes.HomeSettings;
-import anarchy.minesky.core.listener.HomeListener;
-import anarchy.minesky.core.listener.WarpListener;
 import anarchy.minesky.core.impl.database.DatabaseManager;
 import anarchy.minesky.core.impl.database.DatabaseSettings;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
@@ -48,9 +46,6 @@ import anarchy.minesky.core.impl.playerprefs.PlayerConfigAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesRepository;
 import anarchy.minesky.core.impl.playerdata.PlayerDataAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
-import anarchy.minesky.core.listener.PlayerPreferencesListener;
-import anarchy.minesky.core.listener.PlayerEvents;
-import anarchy.minesky.core.listener.PluginCommandBlockListener;
 import anarchy.minesky.core.command.GuardCommandHandler;
 import anarchy.minesky.core.impl.guard.GuardJoinListener;
 import anarchy.minesky.core.impl.guard.GuardManager;
@@ -61,7 +56,6 @@ import anarchy.minesky.core.impl.guard.GuardSettings;
 import anarchy.minesky.core.impl.guard.fog.FogListener;
 import anarchy.minesky.core.impl.guard.fog.FogOfWarManager;
 import anarchy.minesky.core.impl.guard.fog.FogSettings;
-import anarchy.minesky.core.listener.TpaListener;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -175,6 +169,11 @@ public final class AnarchyCore extends JavaPlugin {
         this.fogOfWar.start();
         getServer().getPluginManager().registerEvents(new FogListener(fogOfWar), this);
         this.guardCommandHandler = new GuardCommandHandler(guardManager, fogOfWar, messagesManager, feedbackManager);
+
+        if(getServer().getPluginManager().isPluginEnabled("SkinsRestorer")) {
+            getLogger().info("Registrado evento de join para o SkinsRestorer");
+            getServer().getPluginManager().registerEvents(new SkinJoinApplier(this), this);
+        }
 
         registerCommands();
 
