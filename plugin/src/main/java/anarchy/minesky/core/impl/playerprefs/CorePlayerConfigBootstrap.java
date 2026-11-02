@@ -31,13 +31,6 @@ public final class CorePlayerConfigBootstrap {
                 .sortOrder(20)
                 .build());
 
-        registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_SCOREBOARD)
-                .title(messages.component("config.dialog.categories.scoreboard.title"))
-                .buttonLabel(messages.component("config.dialog.categories.scoreboard.button"))
-                .iconMaterial(Material.OAK_SIGN)
-                .sortOrder(30)
-                .build());
-
         registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_CHAT)
                 .title(messages.component("config.dialog.categories.chat.title"))
                 .buttonLabel(messages.component("config.dialog.categories.chat.button"))
@@ -66,12 +59,6 @@ public final class CorePlayerConfigBootstrap {
         registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
                         PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, PlayerConfigKeys.CATEGORY_TELL)
                 .label(DialogComponentUtils.parse(messages.raw("config.options.tell-sounds")))
-                .defaultValue(true)
-                .build());
-
-        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
-                        PlayerConfigKeys.SCOREBOARD_ENABLED, PlayerConfigKeys.CATEGORY_SCOREBOARD)
-                .label(DialogComponentUtils.parse(messages.raw("config.options.scoreboard-enabled")))
                 .defaultValue(true)
                 .build());
 

@@ -151,7 +151,6 @@ public final class DatabaseManager {
                           payment_sounds TINYINT(1) NOT NULL DEFAULT 1,
                           allow_tell_strangers TINYINT(1) NOT NULL DEFAULT 1,
                           tell_sounds TINYINT(1) NOT NULL DEFAULT 1,
-                          scoreboard_enabled TINYINT(1) NOT NULL DEFAULT 1,
                           tpa_auto TINYINT(1) NOT NULL DEFAULT 0,
                           config_options JSON NOT NULL DEFAULT ('{}')
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

@@ -36,7 +36,7 @@ public final class PlayerPreferencesRepository {
         PlayerPreferences prefs = database.querySync(connection -> {
             try (PreparedStatement ps = connection.prepareStatement(
                     "SELECT allow_tpa_strangers, allow_tpahere_strangers, allow_pay_strangers, payment_sounds,"
-                            + " allow_tell_strangers, tell_sounds, scoreboard_enabled, tpa_auto, config_options"
+                            + " allow_tell_strangers, tell_sounds, tpa_auto, config_options"
                             + " FROM ac_player_prefs WHERE uuid = ?")) {
                 ps.setString(1, playerId.toString());
                 try (ResultSet rs = ps.executeQuery()) {
@@ -82,7 +82,6 @@ public final class PlayerPreferencesRepository {
         putIfAbsent(target, PlayerConfigKeys.PAYMENT_SOUNDS, rs.getBoolean("payment_sounds"));
         putIfAbsent(target, PlayerConfigKeys.TELL_FROM_STRANGERS, rs.getBoolean("allow_tell_strangers"));
         putIfAbsent(target, PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, rs.getBoolean("tell_sounds"));
-        putIfAbsent(target, PlayerConfigKeys.SCOREBOARD_ENABLED, rs.getBoolean("scoreboard_enabled"));
     }
 
     private static void putIfAbsent(Map<String, Boolean> target, String key, boolean value) {
@@ -106,8 +105,8 @@ public final class PlayerPreferencesRepository {
         try (PreparedStatement ps = connection.prepareStatement("""
                     INSERT INTO ac_player_prefs (
                       uuid, allow_tpa_strangers, allow_tpahere_strangers, allow_pay_strangers, payment_sounds,
-                      allow_tell_strangers, tell_sounds, scoreboard_enabled, tpa_auto, config_options
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      allow_tell_strangers, tell_sounds, tpa_auto, config_options
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
                       allow_tpa_strangers = VALUES(allow_tpa_strangers),
                       allow_tpahere_strangers = VALUES(allow_tpahere_strangers),
@@ -115,7 +114,6 @@ public final class PlayerPreferencesRepository {
                       payment_sounds = VALUES(payment_sounds),
                       allow_tell_strangers = VALUES(allow_tell_strangers),
                       tell_sounds = VALUES(tell_sounds),
-                      scoreboard_enabled = VALUES(scoreboard_enabled),
                       tpa_auto = VALUES(tpa_auto),
                       config_options = VALUES(config_options)
                     """)) {
@@ -126,9 +124,8 @@ public final class PlayerPreferencesRepository {
             ps.setBoolean(5, prefs.paymentSounds());
             ps.setBoolean(6, prefs.allowTellFromStrangers());
             ps.setBoolean(7, prefs.tellNotificationSounds());
-            ps.setBoolean(8, prefs.scoreboardEnabled());
-            ps.setBoolean(9, prefs.tpaAuto());
-            ps.setString(10, configJson);
+            ps.setBoolean(8, prefs.tpaAuto());
+            ps.setString(9, configJson);
             ps.executeUpdate();
         } catch (Exception e) {
             plugin.getLogger().severe("Falha ao salvar prefs de " + playerId + ": " + e.getMessage());

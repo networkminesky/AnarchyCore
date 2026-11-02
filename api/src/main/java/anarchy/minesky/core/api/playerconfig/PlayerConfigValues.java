@@ -35,10 +35,6 @@ public record PlayerConfigValues(Map<String, Boolean> booleans) {
         return getBoolean(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS);
     }
 
-    public boolean scoreboardEnabled() {
-        return getBoolean(PlayerConfigKeys.SCOREBOARD_ENABLED);
-    }
-
     public boolean chatGlobalEnabled() {
         return getBoolean(PlayerConfigKeys.CHAT_GLOBAL_ENABLED);
     }

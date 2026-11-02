@@ -7,7 +7,6 @@ public final class PlayerConfigKeys {
 
     public static final String CATEGORY_TPA = "anarchycore:tpa";
     public static final String CATEGORY_TELL = "anarchycore:tell";
-    public static final String CATEGORY_SCOREBOARD = "anarchycore:scoreboard";
     public static final String CATEGORY_CHAT = "anarchycore:chat";
 
     public static final String TPA_FROM_STRANGERS = "anarchycore:tpa_strangers";
@@ -22,7 +21,6 @@ public final class PlayerConfigKeys {
     public static final String PAYMENT_SOUNDS = "anarchycore:payment_sounds";
     public static final String TELL_FROM_STRANGERS = "anarchycore:tell_strangers";
     public static final String TELL_NOTIFICATION_SOUNDS = "anarchycore:tell_sounds";
-    public static final String SCOREBOARD_ENABLED = "anarchycore:scoreboard_enabled";
     public static final String CHAT_GLOBAL_ENABLED = "anarchycore:chat_global_enabled";
     public static final String CHAT_HEADS_ENABLED = "anarchycore:chat_heads_enabled";
 

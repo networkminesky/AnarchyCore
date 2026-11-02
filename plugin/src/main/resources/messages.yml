@@ -223,9 +223,6 @@ config:
       tell:
         title: "&#7BED9FMensagens privadas"
         button: "&#7BED9FTell / Mensagens"
-      scoreboard:
-        title: "&#FFFFFFScoreboard"
-        button: "&#FFFFFFScoreboard"
       chat:
         title: "&#7BED9FChat global"
         button: "&#7BED9FChat"
@@ -234,7 +231,6 @@ config:
     tpahere-strangers: "TPAQUI de desconhecidos"
     tell-strangers: "Mensagens de desconhecidos"
     tell-sounds: "Sons de notificação"
-    scoreboard-enabled: "Exibir scoreboard"
     chat-global-enabled: "Participar do chat global"
     chat-heads-enabled: "Cabeças dos jogadores no chat"
 
