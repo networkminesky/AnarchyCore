@@ -31,7 +31,7 @@ public class SkinJoinApplier implements Listener {
             String playerName = player.getName();
             try {
                 // O método applySkin e skinApplier lidam com a atualização do GameProfile do jogador
-                skinsRestorerAPI.getSkinApplier(Player.class).applySkin(player, SkinIdentifier.ofCustom(playerName));
+                skinsRestorerAPI.getSkinApplier(Player.class).applySkin(player);
             } catch (Exception e) {
                 plugin.getLogger().warning("Erro ao aplicar skin async para " + playerName + ": " + e.getMessage());
             }

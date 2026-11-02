@@ -16,3 +16,7 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    SkinsRestorer:
+      load: BEFORE
+      required: false
+      join-classpath: true
