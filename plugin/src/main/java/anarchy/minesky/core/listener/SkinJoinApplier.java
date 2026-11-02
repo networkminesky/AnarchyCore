@@ -25,6 +25,9 @@ public class SkinJoinApplier implements Listener {
         Player player = event.getPlayer();
 
         player.getScheduler().runDelayed(plugin, (task) -> {
+            if(!player.isOnline())
+                return;
+
             String playerName = player.getName();
             try {
                 // O método applySkin e skinApplier lidam com a atualização do GameProfile do jogador
