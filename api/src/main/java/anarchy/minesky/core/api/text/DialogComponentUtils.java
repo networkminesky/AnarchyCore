@@ -12,6 +12,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,6 +20,57 @@ public final class DialogComponentUtils {
 
     private static final Pattern HEX_AMPERSAND = Pattern.compile("&#([A-Fa-f0-9]{6})");
     private static final Pattern CHAT_URL = Pattern.compile("(https?://\\S+|www\\.\\S+)", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Tabela de texturas vanilla de blocos que não usam diretamente a chave do Material.
+     */
+    private static final Map<String, String> SPRITE_OVERRIDES = Map.ofEntries(
+            Map.entry("big_dripleaf", "blocks:block/big_dripleaf_top"),
+            Map.entry("small_dripleaf", "blocks:block/small_dripleaf_top"),
+            Map.entry("grass_block", "blocks:block/grass_block_side"),
+            Map.entry("podzol", "blocks:block/podzol_side"),
+            Map.entry("mycelium", "blocks:block/mycelium_side"),
+            Map.entry("dirt_path", "blocks:block/dirt_path_side"),
+            Map.entry("cactus", "blocks:block/cactus_side"),
+            Map.entry("crafting_table", "blocks:block/crafting_table_front"),
+            Map.entry("furnace", "blocks:block/furnace_front"),
+            Map.entry("blast_furnace", "blocks:block/blast_furnace_front"),
+            Map.entry("smoker", "blocks:block/smoker_front"),
+            Map.entry("dispenser", "blocks:block/dispenser_front"),
+            Map.entry("dropper", "blocks:block/dropper_front"),
+            Map.entry("observer", "blocks:block/observer_front"),
+            Map.entry("tnt", "blocks:block/tnt_side"),
+            Map.entry("scaffolding", "blocks:block/scaffolding_top"),
+            Map.entry("ancient_debris", "blocks:block/ancient_debris_side"),
+            Map.entry("basalt", "blocks:block/basalt_side"),
+            Map.entry("polished_basalt", "blocks:block/polished_basalt_side"),
+            Map.entry("hay_block", "blocks:block/hay_block_side"),
+            Map.entry("bone_block", "blocks:block/bone_block_side"),
+            Map.entry("pumpkin", "blocks:block/pumpkin_side"),
+            Map.entry("melon", "blocks:block/melon_side"),
+            Map.entry("daylight_detector", "blocks:block/daylight_detector_top"),
+            Map.entry("respawn_anchor", "blocks:block/respawn_anchor_top"),
+            Map.entry("lodestone", "blocks:block/lodestone_top"),
+            Map.entry("target", "blocks:block/target_top"),
+            Map.entry("bee_nest", "blocks:block/bee_nest_front"),
+            Map.entry("beehive", "blocks:block/beehive_front"),
+            Map.entry("stonecutter", "blocks:block/stonecutter_side"),
+            Map.entry("cartography_table", "blocks:block/cartography_table_top"),
+            Map.entry("fletching_table", "blocks:block/fletching_table_top"),
+            Map.entry("smithing_table", "blocks:block/smithing_table_top"),
+            Map.entry("enchanting_table", "blocks:block/enchanting_table_top"),
+            Map.entry("loom", "blocks:block/loom_front"),
+            Map.entry("lectern", "blocks:block/lectern_top"),
+            Map.entry("chiseled_bookshelf", "blocks:block/chiseled_bookshelf_empty"),
+            Map.entry("composter", "blocks:block/composter_side"),
+            Map.entry("barrel", "blocks:block/barrel_side"),
+            Map.entry("piston", "blocks:block/piston_top"),
+            Map.entry("sticky_piston", "blocks:block/piston_top_sticky"),
+            Map.entry("sniffer_egg", "blocks:block/sniffer_egg_not_cracked_top"),
+            Map.entry("crafter", "blocks:block/crafter_top"),
+            Map.entry("vault", "blocks:block/vault_front_off"),
+            Map.entry("trial_spawner", "blocks:block/trial_spawner_top_inactive")
+    );
 
     private DialogComponentUtils() {}
 
@@ -129,13 +181,26 @@ public final class DialogComponentUtils {
     }
 
     /**
-     * Sprite de item + texto, sem {@link Material} — seguro no bootstrap Paper (antes dos registries Bukkit).
+     * Sprite de item + texto, sem {@link Material} — seguro no bootstrap Paper.
      *
      * @param itemKey chave do item vanilla (ex. {@code end_crystal})
      */
     public static Component itemSpriteLabel(String itemKey, String text) {
-        Component sprite = deserializeSprite("items:item/" + itemKey);
-        Component label = Component.text(text);
+        if (itemKey == null || itemKey.isEmpty()) {
+            return Component.text(text != null ? text : "");
+        }
+        String atlasPath = SPRITE_OVERRIDES.get(itemKey);
+        if (atlasPath == null) {
+            if (isItemSpriteBlock(itemKey)) {
+                atlasPath = "items:item/" + itemKey;
+            } else if (itemKey.endsWith("_sapling") || itemKey.endsWith("_leaves") || itemKey.endsWith("_planks") || itemKey.endsWith("_log")) {
+                atlasPath = "blocks:block/" + itemKey;
+            } else {
+                atlasPath = "items:item/" + itemKey;
+            }
+        }
+        Component sprite = deserializeSprite(atlasPath);
+        Component label = Component.text(text != null ? text : "");
         if (sprite == null) {
             return label;
         }
@@ -144,29 +209,124 @@ public final class DialogComponentUtils {
 
     /**
      * Sprite MiniMessage para ícones de material.
-     * Escadas, cercas, placas etc. existem no atlas de {@code items}; usar {@code blocks} só quando não há item.
+     * Resolve corretamente os atlas de itens e blocos vanilla sem exibir texturas ausentes.
      */
     public static Component materialIconComponent(Material material) {
         if (material == null || material.isAir()) {
             return Component.empty();
         }
+        String spritePath = resolveMaterialSpritePath(material);
+        Component sprite = deserializeSprite(spritePath);
+        return sprite != null ? sprite : Component.empty();
+    }
+
+    public static String resolveMaterialSpritePath(Material material) {
+        if (material == null || material.isAir()) {
+            return "";
+        }
         String key = material.getKey().getKey();
-        if (material.isItem()) {
-            Component itemSprite = deserializeSprite("items:item/" + key);
-            if (itemSprite != null) {
-                return itemSprite;
-            }
+
+        // 1. Tabela de override manual de blocos especiais
+        String override = SPRITE_OVERRIDES.get(key);
+        if (override != null) {
+            return override;
         }
-        if (material.isBlock()) {
-            Component blockSprite = deserializeSprite("blocks:block/" + key);
-            if (blockSprite != null) {
-                return blockSprite;
-            }
+
+        // 2. Itens que não são blocos (espadas, maçãs, etc.)
+        if (!material.isBlock()) {
+            return "items:item/" + key;
         }
-        return deserializeSprite("items:item/" + key);
+
+        // 3. Blocos que possuem ícone específico 2D no atlas de itens
+        if (isItemSpriteBlock(key)) {
+            return "items:item/" + key;
+        }
+
+        // 4. Blocos derivados que usam textura do bloco base (escadas, lajes, cercas)
+        String derived = resolveDerivedBlockTexture(key);
+        if (derived != null) {
+            return "blocks:block/" + derived;
+        }
+
+        // 5. Blocos comuns (mudas/saplings, pedras, flores, etc. que ficam no atlas de blocos)
+        return "blocks:block/" + key;
+    }
+
+    private static boolean isItemSpriteBlock(String key) {
+        if (key.endsWith("_door")
+                || key.endsWith("_sign")
+                || key.endsWith("_hanging_sign")
+                || key.endsWith("_bed")
+                || key.endsWith("_candle")
+                || key.endsWith("_shulker_box")) {
+            return true;
+        }
+        return switch (key) {
+            case "brewing_stand", "cauldron", "hopper", "armor_stand",
+                 "campfire", "soul_campfire", "flower_pot", "repeater",
+                 "comparator", "kelp", "sugar_cane", "nether_wart",
+                 "bell", "chain", "cake", "lantern", "soul_lantern",
+                 "bamboo", "iron_bars", "wheat_seeds", "pumpkin_seeds",
+                 "melon_seeds", "beetroot_seeds", "torchflower_seeds",
+                 "pitcher_pod" -> true;
+            default -> false;
+        };
+    }
+
+    private static String resolveDerivedBlockTexture(String key) {
+        if (key.endsWith("_stairs")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_stairs".length()));
+        }
+        if (key.endsWith("_slab")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_slab".length()));
+        }
+        if (key.endsWith("_fence_gate")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_fence_gate".length()));
+        }
+        if (key.endsWith("_fence")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_fence".length()));
+        }
+        if (key.endsWith("_wall")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_wall".length()));
+        }
+        if (key.endsWith("_button")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_button".length()));
+        }
+        if (key.endsWith("_pressure_plate")) {
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_pressure_plate".length()));
+        }
+        return null;
+    }
+
+    private static String resolveBaseBlockTexture(String base) {
+        if (base == null || base.isEmpty()) return "stone";
+        return switch (base) {
+            case "oak", "spruce", "birch", "jungle", "acacia", "dark_oak",
+                 "mangrove", "cherry", "bamboo", "crimson", "warped" -> base + "_planks";
+            case "stone_brick" -> "stone_bricks";
+            case "mossy_stone_brick" -> "mossy_stone_bricks";
+            case "nether_brick" -> "nether_bricks";
+            case "red_nether_brick" -> "red_nether_bricks";
+            case "end_stone_brick" -> "end_stone_bricks";
+            case "deepslate_brick" -> "deepslate_bricks";
+            case "deepslate_tile" -> "deepslate_tiles";
+            case "polished_blackstone_brick" -> "polished_blackstone_bricks";
+            case "mud_brick" -> "mud_bricks";
+            case "prismarine_brick" -> "prismarine_bricks";
+            case "brick" -> "bricks";
+            case "quartz" -> "quartz_block_side";
+            case "smooth_quartz" -> "quartz_block_bottom";
+            case "purpur" -> "purpur_block";
+            case "light_weighted" -> "gold_block";
+            case "heavy_weighted" -> "iron_block";
+            default -> base;
+        };
     }
 
     private static Component deserializeSprite(String atlasPath) {
+        if (atlasPath == null || atlasPath.isEmpty()) {
+            return null;
+        }
         try {
             return MiniMessage.miniMessage().deserialize("<sprite:" + atlasPath + ">");
         } catch (Exception ignored) {
