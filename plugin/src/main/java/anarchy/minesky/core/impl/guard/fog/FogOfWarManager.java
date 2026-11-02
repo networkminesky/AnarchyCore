@@ -122,18 +122,17 @@ public final class FogOfWarManager {
     }
 
     /**
-     * Filtro do AnarchyTags. {@code tagHold} continua verdadeiro por alguns ticks
-     * depois do respawn para o AnarchyTags despawnar o text display (o DESTROY do
-     * jogador leva o passageiro junto) antes de montar a tag de novo.
+     * A tag 3D fica atrás da parede. Some por completo só com o alvo agachado.
+     * {@code tagHold} cobre só a remontagem quando o corpo volta a aparecer.
      */
     public boolean allowsExternalNametag(Player viewer, Player target) {
         if (viewer == null || target == null) {
             return false;
         }
-        if (isHidden(viewer.getUniqueId(), target.getEntityId())) {
+        if (tagHold.contains(new PairKey(viewer.getUniqueId(), target.getUniqueId()))) {
             return false;
         }
-        return !tagHold.contains(new PairKey(viewer.getUniqueId(), target.getUniqueId()));
+        return !isHidden(viewer.getUniqueId(), target.getEntityId()) || !target.isSneaking();
     }
 
     public void track(Player player) {
@@ -375,7 +374,9 @@ public final class FogOfWarManager {
             state.visible = false;
             state.ticksOutOfSight = settings.outOfSightThreshold();
             hide(observer, target, state);
+            return;
         }
+        syncFloatingTag(observer, target, state);
     }
 
     private void revealAll(Player observer) {
@@ -473,7 +474,7 @@ public final class FogOfWarManager {
 
     private void hide(Player observer, FogSnapshot target, FogPairState state) {
         hidden.computeIfAbsent(observer.getUniqueId(), ignored -> ConcurrentHashMap.newKeySet()).add(target.entityId);
-        holdExternalTag(observer, target);
+        cancelTagRelease(observer, target);
         if (settings.strategy() == FogSettings.Strategy.TELEPORT) {
             teleport(observer, target.entityId, target.x, -64.0, target.z, target.yaw, target.pitch, false);
         } else {
@@ -489,6 +490,9 @@ public final class FogOfWarManager {
         }
         destroyNametag(observer, nametagId(target.entityId));
         state.nametagSpawned = false;
+        state.floatingTagId = 0;
+        state.floatPending = false;
+        state.floatGeneration++;
         clearLocator(observer, target, state);
 
         if (settings.strategy() == FogSettings.Strategy.TELEPORT) {
@@ -511,17 +515,13 @@ public final class FogOfWarManager {
         scheduleExternalTagRelease(observer, target);
     }
 
-    private void holdExternalTag(Player observer, FogSnapshot target) {
+    private void cancelTagRelease(Player observer, FogSnapshot target) {
         if (!tagsAttached) {
             return;
         }
         PairKey key = new PairKey(observer.getUniqueId(), target.playerId);
         tagEpoch.merge(key, 1, Integer::sum);
-        tagHold.add(key);
-        Player live = Bukkit.getPlayer(target.playerId);
-        if (live != null && live.isOnline()) {
-            tags.onVisibilityChanged(live);
-        }
+        tagHold.remove(key);
     }
 
     /**
@@ -554,9 +554,66 @@ public final class FogOfWarManager {
         }, null);
     }
 
+    private void syncFloatingTag(Player observer, FogSnapshot target, FogPairState state) {
+        if (!tagsAttached) {
+            return;
+        }
+        Player live = Bukkit.getPlayer(target.playerId);
+        if (live == null || !live.isOnline()) {
+            return;
+        }
+        if (target.sneaking) {
+            if (state.floatingTagId != 0 || state.floatPending) {
+                state.floatGeneration++;
+                state.floatingTagId = 0;
+                state.floatPending = false;
+                tags.hideTagFrom(observer, live);
+            }
+            return;
+        }
+        if (state.floatingTagId != 0) {
+            moveFloatingTag(observer, target, state);
+            return;
+        }
+        if (state.floatPending) {
+            return;
+        }
+        state.floatPending = true;
+        int generation = ++state.floatGeneration;
+        tags.floatTag(observer, live, id -> {
+            state.floatPending = false;
+            if (generation != state.floatGeneration || target.sneaking || !isHidden(observer.getUniqueId(), target.entityId)) {
+                return;
+            }
+            state.floatingTagId = id;
+            moveFloatingTag(observer, target, state);
+        });
+    }
+
+    private void moveFloatingTag(Player observer, FogSnapshot target, FogPairState state) {
+        double nx = target.x;
+        double ny = target.y + target.height;
+        double nz = target.z;
+        double dx = nx - state.nametagX;
+        double dy = ny - state.nametagY;
+        double dz = nz - state.nametagZ;
+        boolean unplaced = state.nametagX == 0.0 && state.nametagY == 0.0 && state.nametagZ == 0.0;
+        if (unplaced || dx * dx + dy * dy + dz * dz >= settings.nametagMoveEpsilonSq()) {
+            send(observer, new WrapperPlayServerEntityMetadata(state.floatingTagId, List.of(
+                    new EntityData<>(8, EntityDataTypes.INT, 0),
+                    new EntityData<>(9, EntityDataTypes.INT, 1),
+                    new EntityData<>(10, EntityDataTypes.INT, 1))));
+            teleport(observer, state.floatingTagId, nx, ny, nz, 0f, 0f, false);
+            state.nametagX = nx;
+            state.nametagY = ny;
+            state.nametagZ = nz;
+        }
+    }
+
     private void syncHiddenExtras(Player observer, FogSnapshot target, FogPairState state) {
+        syncFloatingTag(observer, target, state);
         boolean stealthed = target.stealthed();
-        if (settings.nametagEnabled() && !tagsAttached && !stealthed) {
+        if (settings.nametagEnabled() && !tagsAttached && !target.sneaking) {
             int nametag = nametagId(target.entityId);
             if (!state.nametagSpawned) {
                 spawnNametag(observer, target, nametag);

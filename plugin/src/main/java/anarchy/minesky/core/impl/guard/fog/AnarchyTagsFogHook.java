@@ -7,6 +7,7 @@ import org.bukkit.plugin.Plugin;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.function.IntConsumer;
 
 /**
  * Liga o fog na API do AnarchyTags por reflexão. O AnarchyTags depende do
@@ -20,6 +21,10 @@ final class AnarchyTagsFogHook implements FogNametagIntegration {
     private final Method refreshVisibilityFor;
     private final Method refreshTag;
     private final Method unregisterVisibilityFilter;
+    private final Method getNametag;
+    private final Method hideForViewer;
+    private final Method presentTo;
+    private final Method displayEntityId;
     private volatile boolean closed;
 
     private AnarchyTagsFogHook(
@@ -28,7 +33,11 @@ final class AnarchyTagsFogHook implements FogNametagIntegration {
             Object filter,
             Method refreshVisibilityFor,
             Method refreshTag,
-            Method unregisterVisibilityFilter
+            Method unregisterVisibilityFilter,
+            Method getNametag,
+            Method hideForViewer,
+            Method presentTo,
+            Method displayEntityId
     ) {
         this.plugin = plugin;
         this.api = api;
@@ -36,6 +45,10 @@ final class AnarchyTagsFogHook implements FogNametagIntegration {
         this.refreshVisibilityFor = refreshVisibilityFor;
         this.refreshTag = refreshTag;
         this.unregisterVisibilityFilter = unregisterVisibilityFilter;
+        this.getNametag = getNametag;
+        this.hideForViewer = hideForViewer;
+        this.presentTo = presentTo;
+        this.displayEntityId = displayEntityId;
     }
 
     static AnarchyTagsFogHook attach(Plugin plugin, FogOfWarManager fog, Plugin tagsPlugin) throws ReflectiveOperationException {
@@ -53,12 +66,27 @@ final class AnarchyTagsFogHook implements FogNametagIntegration {
         Method refreshVisibilityFor = api.getClass().getMethod("refreshVisibilityFor", Player.class);
         Method refreshTag = api.getClass().getMethod("refreshTag", Player.class);
         Method unregister = api.getClass().getMethod("unregisterVisibilityFilter", filterType);
+        Method getNametag = api.getClass().getMethod("get", Player.class);
+        Class<?> nametagClass = Class.forName("anarchy.minesky.tags.nametags.Nametag", true, loader);
+        Method hideForViewer = nametagClass.getMethod("hide", Player.class);
+        Method presentTo = nametagClass.getMethod("presentTo", Player.class);
+        Method displayEntityId = nametagClass.getMethod("getDisplayEntityId");
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             refreshVisibilityFor.invoke(api, player);
         }
         plugin.getLogger().info("[AnarchyGuard] Fog of War integrado ao AnarchyTags.");
-        return new AnarchyTagsFogHook(plugin, api, filter, refreshVisibilityFor, refreshTag, unregister);
+        return new AnarchyTagsFogHook(
+                plugin,
+                api,
+                filter,
+                refreshVisibilityFor,
+                refreshTag,
+                unregister,
+                getNametag,
+                hideForViewer,
+                presentTo,
+                displayEntityId);
     }
 
     private static InvocationHandler handler(FogOfWarManager fog) {
@@ -102,6 +130,54 @@ final class AnarchyTagsFogHook implements FogNametagIntegration {
             refreshTag.invoke(api, target);
         } catch (ReflectiveOperationException error) {
             plugin.getLogger().warning("[AnarchyGuard] Falha ao atualizar tag do AnarchyTags: " + error.getMessage());
+        }
+    }
+
+    @Override
+    public void floatTag(Player viewer, Player target, IntConsumer onSpawned) {
+        if (closed || viewer == null || target == null || !target.isOnline() || onSpawned == null) {
+            return;
+        }
+        target.getScheduler().run(plugin, task -> spawnFloatingTag(viewer, target, onSpawned), null);
+    }
+
+    @Override
+    public void hideTagFrom(Player viewer, Player target) {
+        if (closed || viewer == null || target == null || !target.isOnline()) {
+            return;
+        }
+        target.getScheduler().run(plugin, task -> {
+            try {
+                Object nametag = getNametag.invoke(api, target);
+                if (nametag != null) {
+                    hideForViewer.invoke(nametag, viewer);
+                }
+            } catch (ReflectiveOperationException error) {
+                plugin.getLogger().warning("[AnarchyGuard] Falha ao esconder tag do AnarchyTags: " + error.getMessage());
+            }
+        }, null);
+    }
+
+    private void spawnFloatingTag(Player viewer, Player target, IntConsumer onSpawned) {
+        if (closed || !target.isOnline()) {
+            return;
+        }
+        try {
+            Object nametag = getNametag.invoke(api, target);
+            if (nametag == null) {
+                return;
+            }
+            hideForViewer.invoke(nametag, viewer);
+            Object shown = presentTo.invoke(nametag, viewer);
+            if (!(shown instanceof Boolean spawned) || !spawned) {
+                return;
+            }
+            Object id = displayEntityId.invoke(nametag);
+            if (id instanceof Integer entityId && entityId > 0) {
+                onSpawned.accept(entityId);
+            }
+        } catch (ReflectiveOperationException error) {
+            plugin.getLogger().warning("[AnarchyGuard] Falha ao soltar a tag do AnarchyTags: " + error.getMessage());
         }
     }
 }

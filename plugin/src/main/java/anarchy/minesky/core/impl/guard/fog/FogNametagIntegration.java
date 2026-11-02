@@ -4,6 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.util.function.IntConsumer;
+
 /**
  * Ponte opcional com o AnarchyTags. O AnarchyTags depende do AnarchyCore e
  * habilita depois; a ligação acontece no PluginEnableEvent, pela classloader dele.
@@ -17,6 +19,10 @@ interface FogNametagIntegration {
     default void stop() {}
 
     default void onVisibilityChanged(Player target) {}
+
+    default void floatTag(Player viewer, Player target, IntConsumer onSpawned) {}
+
+    default void hideTagFrom(Player viewer, Player target) {}
 
     static FogNametagIntegration open(Plugin plugin, FogOfWarManager fog) {
         Plugin tags = Bukkit.getPluginManager().getPlugin("AnarchyTags");
