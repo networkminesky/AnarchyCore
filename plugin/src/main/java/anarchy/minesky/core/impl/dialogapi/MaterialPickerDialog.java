@@ -42,13 +42,26 @@ public final class MaterialPickerDialog {
     }
 
     public void open(Player player, Component title, Consumer<Material> onSelected) {
+        open(player, title, null, onSelected);
+    }
+
+    public void open(Player player, Component title, String initialQuery, Consumer<Material> onSelected) {
         if (player == null || !player.isOnline() || onSelected == null) {
             return;
         }
+        if (initialQuery != null && !initialQuery.isBlank()) {
+            showResults(player, title, initialQuery.trim(), onSelected);
+            return;
+        }
+        openSearchForm(player, title, "", onSelected);
+    }
+
+    private void openSearchForm(Player player, Component title, String defaultQuery, Consumer<Material> onSelected) {
         MineSkyDialog.builder(title)
                 .body(Component.text("Digite parte do nome e clique em Procurar."))
                 .addInput(TextInput.builder(INPUT_QUERY, Component.text("Buscar material"))
                         .placeholder("Ex: diamante, espada, apple, bed")
+                        .initial(defaultQuery != null ? defaultQuery : "")
                         .maxLength(48)
                         .build())
                 .button(DialogButton.builder()
@@ -65,10 +78,13 @@ public final class MaterialPickerDialog {
     }
 
     private void showResults(Player player, Component title, DialogResponse response, Consumer<Material> onSelected) {
-        String query = response.getText(INPUT_QUERY, "").trim();
+        showResults(player, title, response.getText(INPUT_QUERY, "").trim(), onSelected);
+    }
+
+    private void showResults(Player player, Component title, String query, Consumer<Material> onSelected) {
         List<Material> matches = searchIndex.search(query, MAX_RESULTS);
         if (matches.isEmpty()) {
-            open(player, title, onSelected);
+            openSearchForm(player, title, query, onSelected);
             return;
         }
 
@@ -87,7 +103,7 @@ public final class MaterialPickerDialog {
         builder.button(DialogButton.builder()
                 .label(Component.text("Nova busca"))
                 .width(200)
-                .onClick(p -> open(p, title, onSelected))
+                .onClick(p -> openSearchForm(p, title, "", onSelected))
                 .build());
 
         builder.show(player);

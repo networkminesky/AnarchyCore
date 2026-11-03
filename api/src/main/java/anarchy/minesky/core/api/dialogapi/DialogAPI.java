@@ -54,4 +54,8 @@ public interface DialogAPI {
     void openMaterialPicker(Player player, String title, Consumer<Material> onSelected);
 
     void openMaterialPicker(Player player, Component title, Consumer<Material> onSelected);
+
+    void openMaterialPicker(Player player, String title, String initialQuery, Consumer<Material> onSelected);
+
+    void openMaterialPicker(Player player, Component title, String initialQuery, Consumer<Material> onSelected);
 }

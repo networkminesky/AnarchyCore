@@ -21,9 +21,24 @@ public final class MaterialPickerDialogs {
     }
 
     public static void open(Player player, net.kyori.adventure.text.Component title, Consumer<Material> onSelected) {
+        open(player, title, null, onSelected);
+    }
+
+    /**
+     * @param initialQuery texto inicial do campo de busca; se não vazio, abre direto nos resultados da pesquisa
+     */
+    public static void open(Player player, String title, String initialQuery, Consumer<Material> onSelected) {
         DialogAPI api = DialogAPI.get();
         if (api != null && onSelected != null) {
-            api.openMaterialPicker(player, title, onSelected);
+            api.openMaterialPicker(player, title, initialQuery, onSelected);
+        }
+    }
+
+    public static void open(Player player, net.kyori.adventure.text.Component title, String initialQuery,
+                            Consumer<Material> onSelected) {
+        DialogAPI api = DialogAPI.get();
+        if (api != null && onSelected != null) {
+            api.openMaterialPicker(player, title, initialQuery, onSelected);
         }
     }
 }

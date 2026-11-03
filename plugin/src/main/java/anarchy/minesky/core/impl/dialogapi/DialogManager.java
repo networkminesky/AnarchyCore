@@ -65,17 +65,29 @@ public final class DialogManager implements DialogAPI {
 
     @Override
     public void openMaterialPicker(Player player, String title, java.util.function.Consumer<Material> onSelected) {
-        openMaterialPicker(player, DialogComponentUtils.parse(title), onSelected);
+        openMaterialPicker(player, DialogComponentUtils.parse(title), null, onSelected);
     }
 
     @Override
     public void openMaterialPicker(Player player, Component title, java.util.function.Consumer<Material> onSelected) {
+        openMaterialPicker(player, title, null, onSelected);
+    }
+
+    @Override
+    public void openMaterialPicker(Player player, String title, String initialQuery,
+                                   java.util.function.Consumer<Material> onSelected) {
+        openMaterialPicker(player, DialogComponentUtils.parse(title), initialQuery, onSelected);
+    }
+
+    @Override
+    public void openMaterialPicker(Player player, Component title, String initialQuery,
+                                   java.util.function.Consumer<Material> onSelected) {
         if (player == null || !player.isOnline() || onSelected == null || !plugin.isEnabled()) {
             return;
         }
         player.getScheduler().run(plugin, task -> {
             if (plugin.isEnabled()) {
-                materialPicker.open(player, title, onSelected);
+                materialPicker.open(player, title, initialQuery, onSelected);
             }
         }, null);
     }
