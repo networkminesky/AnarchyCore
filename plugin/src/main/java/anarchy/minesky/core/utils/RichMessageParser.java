@@ -36,6 +36,11 @@ public final class RichMessageParser {
         return !(sender instanceof Player player) || player.hasPermission(ChatAntifloodListener.URL_PERMISSION);
     }
 
+    /** Parseia {@code &}, {@code &#RRGGBB}, {@code §} e MiniMessage (incl. {@code <head_url:...>}). */
+    public static Component parseRichText(String input) {
+        return parseColored(input);
+    }
+
     private static Component parseColored(String input) {
         if (input == null || input.isEmpty()) {
             return Component.empty();

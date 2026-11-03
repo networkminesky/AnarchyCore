@@ -58,6 +58,12 @@ permissions:
   anarchycore.broadcast:
     description: Permite enviar anúncios globais com /broadcast
     default: op
+  anarchycore.itemname:
+    description: Permite alterar o nome de itens na mão com /itemname
+    default: op
+  anarchycore.lore:
+    description: Permite editar a lore de itens na mão com /lore
+    default: op
   anarchycore.heal:
     description: Permite usar /heal para restaurar a própria vida
     default: op

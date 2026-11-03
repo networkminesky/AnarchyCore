@@ -64,6 +64,23 @@ broadcast:
   usage: "&#FF6B6BUso: &#FFFFFF/broadcast [-s] <mensagem>"
   sent: "&#7BED9FBroadcast enviado."
 
+itemname:
+  usage: "&#FF6B6BUso: &#FFFFFF/itemname <nome> &#7| &#FFFFFF/itemname clear"
+  no-item: "&#FF6B6BSegure um item na mão principal."
+  set: "&#7BED9FNome do item atualizado."
+  cleared: "&#7BED9FNome do item removido (padrão do jogo)."
+
+lore:
+  usage: "&#FF6B6BUso: &#FFFFFF/lore add|remove|set [linha] <texto>"
+  no-item: "&#FF6B6BSegure um item na mão principal."
+  added: "&#7BED9FLinha adicionada à lore."
+  cleared: "&#7BED9FLore removida."
+  removed: "&#7BED9FLinha &#FFFFFF{line} &#7BED9Fremovida."
+  set: "&#7BED9FLore definida (1 linha)."
+  set-line: "&#7BED9FLinha &#FFFFFF{line} &#7BED9Fatualizada."
+  invalid-line: "&#FF6B6BLinha inválida: &#FFFFFF{line}"
+  line-out-of-range: "&#FF6B6BLinha &#FFFFFF{line} &#FF6B6Bnão existe nesta lore."
+
 tpa:
   usage:
     tpa: "&#FF6B6BUso: &#FFFFFF/tpa <jogador>"

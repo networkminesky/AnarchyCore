@@ -5,6 +5,8 @@ import anarchy.minesky.core.command.LegacyBukkitBasicCommand;
 import anarchy.minesky.core.command.ConfigCommand;
 import anarchy.minesky.core.command.AnarchyCoreCommand;
 import anarchy.minesky.core.command.HealCommand;
+import anarchy.minesky.core.command.ItemNameCommand;
+import anarchy.minesky.core.command.LoreCommand;
 import anarchy.minesky.core.command.NvCommand;
 import anarchy.minesky.core.command.PingCommand;
 import anarchy.minesky.core.command.ReplyCommand;
@@ -196,6 +198,12 @@ public final class AnarchyCore extends JavaPlugin {
 
         BroadcastCommand broadcastCommand = new BroadcastCommand(messagesManager, feedbackManager, globalSoundSettings);
         bind("broadcast", "Envia um anúncio global", List.of("bc", "anuncio"), broadcastCommand, broadcastCommand);
+
+        ItemNameCommand itemNameCommand = new ItemNameCommand(messagesManager, feedbackManager);
+        bind("itemname", "Altera o nome do item na mão", List.of("iname", "rename"), itemNameCommand, itemNameCommand);
+
+        LoreCommand loreCommand = new LoreCommand(messagesManager, feedbackManager);
+        bind("lore", "Edita a lore do item na mão", List.of(), loreCommand, loreCommand);
 
         TellCommand tellCommand = new TellCommand(messagesManager, feedbackManager, privateMessageService);
         bind("tell", "Envia mensagem privada", List.of("msg", "w", "whisper"), tellCommand, tellCommand);
