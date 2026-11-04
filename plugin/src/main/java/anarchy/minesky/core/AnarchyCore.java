@@ -11,6 +11,7 @@ import anarchy.minesky.core.command.NvCommand;
 import anarchy.minesky.core.command.PingCommand;
 import anarchy.minesky.core.command.ReplyCommand;
 import anarchy.minesky.core.command.TellCommand;
+import anarchy.minesky.core.command.TempoJogoCommand;
 import anarchy.minesky.core.command.TpAutoCommand;
 import anarchy.minesky.core.command.TpaAcceptCommand;
 import anarchy.minesky.core.command.TpaCommand;
@@ -189,6 +190,14 @@ public final class AnarchyCore extends JavaPlugin {
     private void registerCommands() {
         PingCommand pingCommand = new PingCommand(messagesManager, feedbackManager);
         bind("ping", "Mostra seu ping ou o de outro jogador", List.of(), pingCommand, pingCommand);
+
+        TempoJogoCommand tempoJogoCommand = new TempoJogoCommand(messagesManager, feedbackManager);
+        bind(
+                "tempojogo",
+                "Mostra tempo de jogo (estatísticas vanilla)",
+                List.of("playtime", "pt"),
+                tempoJogoCommand,
+                tempoJogoCommand);
 
         HealCommand healCommand = new HealCommand(messagesManager, feedbackManager);
         bind("heal", "Restaura sua vida ou a de outro jogador", List.of(), healCommand, healCommand);

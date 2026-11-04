@@ -25,6 +25,9 @@ permissions:
   anarchycore.ping.others:
     description: Permite ver o ping de outros jogadores com /ping
     default: op
+  anarchycore.tempojogo.others:
+    description: Permite ver o tempo de jogo de outros jogadores com /tempojogo
+    default: op
   anarchycore.reload:
     description: Permite recarregar config.yml e messages.yml com /anarchycore reload
     default: op

@@ -27,8 +27,12 @@ guard:
   history-empty: "&7Nenhum registro encontrado."
 
 ping:
-  self: "&7Seu ping: &f{ping}ms"
-  other: "&7Ping de &f{target}&7: &f{ping}ms"
+  self: "&fSeu ping: &a{ping}ms"
+  other: "&fPing de &a{target}&f: &a{ping}ms"
+
+playtime:
+  self: "&fSeu tempo de jogo: &e⌚ {time}"
+  other: "&fTempo de jogo de &e{target}&7: &e⌚ {time}"
 
 heal:
   self: "&#7BED9FVida restaurada!"
