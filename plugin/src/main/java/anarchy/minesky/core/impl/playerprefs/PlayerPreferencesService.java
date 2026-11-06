@@ -1,5 +1,6 @@
 package anarchy.minesky.core.impl.playerprefs;
 
+import anarchy.minesky.core.impl.friends.FriendsRepository;
 import anarchy.minesky.core.api.playerconfig.PlayerConfigBooleanOption;
 import org.bukkit.entity.Player;
 
@@ -12,12 +13,18 @@ import java.util.function.Consumer;
 public final class PlayerPreferencesService {
 
     private final PlayerPreferencesRepository repository;
+    private FriendsRepository friendsRepository;
     private final Map<UUID, PlayerPreferences> cache = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> knownCache = new ConcurrentHashMap<>();
     private PlayerConfigRegistryImpl registry;
 
     public PlayerPreferencesService(PlayerPreferencesRepository repository) {
         this.repository = repository;
+    }
+
+    /** Chamado após o repositório de amigos existir (BD). */
+    public void attachFriendsRepository(FriendsRepository friendsRepository) {
+        this.friendsRepository = friendsRepository;
     }
 
     void attachRegistry(PlayerConfigRegistryImpl registry) {
@@ -91,9 +98,16 @@ public final class PlayerPreferencesService {
         update(player, prefs -> prefs.setConfigBoolean(option.key(), value));
     }
 
+    /**
+     * “Desconhecido” para Tell/TPA/pay: quando o sistema de amigos está ativo no banco,
+     * é quem não é amigo; caso contrário, mantém a lista legada {@code ac_player_known}.
+     */
     public boolean isStranger(UUID viewer, UUID other) {
         if (viewer.equals(other)) {
             return false;
+        }
+        if (friendsRepository != null && friendsRepository.isActive()) {
+            return !friendsRepository.areFriends(viewer, other);
         }
         Set<UUID> known = knownCache.computeIfAbsent(viewer, repository::loadKnown);
         return !known.contains(other);

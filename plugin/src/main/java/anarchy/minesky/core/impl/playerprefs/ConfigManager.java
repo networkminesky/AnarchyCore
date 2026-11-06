@@ -8,6 +8,7 @@ import anarchy.minesky.core.api.feedback.FeedbackPriority;
 import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.api.playerconfig.PlayerConfigBooleanOption;
 import anarchy.minesky.core.api.playerconfig.PlayerConfigCategory;
+import anarchy.minesky.core.api.playerconfig.PlayerConfigKeys;
 import anarchy.minesky.core.api.playerconfig.PlayerConfigRegistry;
 import anarchy.minesky.core.api.sounds.UiSoundsAPI;
 import anarchy.minesky.core.api.text.DialogComponentUtils;
@@ -131,6 +132,28 @@ public final class ConfigManager {
             return;
         }
         uiSounds.playTell(target);
+    }
+
+    /** Som ao receber pedido de amizade (usa o mesmo som configurável de tell). */
+    public void playFriendRequestNotification(Player target) {
+        if (!uiSounds.isTellEnabled()) {
+            return;
+        }
+        if (!prefs.get(target).getConfigBoolean(PlayerConfigKeys.FRIENDS_REQUEST_SOUNDS, true)) {
+            return;
+        }
+        uiSounds.playTell(target);
+    }
+
+    /** Som quando um amigo entra no servidor. */
+    public void playFriendJoinNotification(Player viewer) {
+        if (!uiSounds.isTellEnabled()) {
+            return;
+        }
+        if (!prefs.get(viewer).getConfigBoolean(PlayerConfigKeys.FRIENDS_JOIN_SOUNDS, true)) {
+            return;
+        }
+        uiSounds.playTell(viewer);
     }
 
     /**

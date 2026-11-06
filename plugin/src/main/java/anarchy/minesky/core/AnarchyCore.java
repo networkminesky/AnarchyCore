@@ -142,7 +142,7 @@ public final class AnarchyCore extends JavaPlugin {
         this.playerDataApi = new PlayerDataAPIImpl(this, databaseManager);
         this.playerDataApi.register();
         this.friendsRepository = new FriendsRepository(databaseManager);
-        this.friendsManager = new FriendsManager(this, messagesManager, feedbackManager, friendsRepository, playerDataApi);
+        playerPreferencesService.attachFriendsRepository(friendsRepository);
         this.configManager = new ConfigManager(
                 messagesManager, feedbackManager, playerPreferencesService, playerConfigApi.registry(), uiSoundsApi);
 
@@ -154,6 +154,17 @@ public final class AnarchyCore extends JavaPlugin {
 
         this.tpaManager = new TpaManager(this, messagesManager, feedbackManager, tpaSettings, playerPreferencesService);
         getServer().getPluginManager().registerEvents(new TpaListener(tpaManager), this);
+
+        this.friendsManager = new FriendsManager(
+                this,
+                messagesManager,
+                feedbackManager,
+                friendsRepository,
+                playerDataApi,
+                privateMessageService,
+                tpaManager,
+                playerConfigApi,
+                configManager);
 
         this.warpManager = new WarpManager(this, messagesManager, feedbackManager, warpSettings, warpStorage);
         getServer().getPluginManager().registerEvents(new WarpListener(warpManager), this);

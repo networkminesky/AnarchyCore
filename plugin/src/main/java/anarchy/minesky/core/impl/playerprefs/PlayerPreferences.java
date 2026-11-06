@@ -18,6 +18,10 @@ public final class PlayerPreferences {
         prefs.configBooleans.put(PlayerConfigKeys.PAYMENT_SOUNDS, true);
         prefs.configBooleans.put(PlayerConfigKeys.TELL_FROM_STRANGERS, true);
         prefs.configBooleans.put(PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.FRIENDS_ALLOW_INCOMING_REQUESTS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.FRIENDS_REQUEST_SOUNDS, true);
+        prefs.configBooleans.put(PlayerConfigKeys.FRIENDS_NOTIFY_ON_FRIEND_JOIN, true);
+        prefs.configBooleans.put(PlayerConfigKeys.FRIENDS_JOIN_SOUNDS, true);
         prefs.configBooleans.put(PlayerConfigKeys.CHAT_GLOBAL_ENABLED, true);
         prefs.configBooleans.put(PlayerConfigKeys.CHAT_HEADS_ENABLED, false);
         return prefs;

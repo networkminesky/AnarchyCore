@@ -1,15 +1,13 @@
 package anarchy.minesky.core.utils;
 
 import anarchy.minesky.core.api.text.DialogComponentUtils;
-import anarchy.minesky.core.api.utils.HeadURLResolver;
 import anarchy.minesky.core.listener.ChatAntifloodListener;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 /**
- * Formata texto de chat/broadcast com legacy (&), MiniMessage e {@link HeadURLResolver#headUrlTag()}.
+ * Formata texto de chat/broadcast com o mesmo pipeline que {@link DialogComponentUtils#parse(String)}.
  */
 public final class RichMessageParser {
 
@@ -36,7 +34,7 @@ public final class RichMessageParser {
         return !(sender instanceof Player player) || player.hasPermission(ChatAntifloodListener.URL_PERMISSION);
     }
 
-    /** Parseia {@code &}, {@code &#RRGGBB}, {@code §} e MiniMessage (incl. {@code <head_url:...>}). */
+    /** Parseia {@code &}, {@code &#RRGGBB}, {@code §}, MiniMessage e tags de cabeça ({@code <head:...>}). */
     public static Component parseRichText(String input) {
         return parseColored(input);
     }
@@ -45,16 +43,6 @@ public final class RichMessageParser {
         if (input == null || input.isEmpty()) {
             return Component.empty();
         }
-        input = DialogComponentUtils.normalizeLegacyColors(input);
-        if (input.indexOf('<') >= 0) {
-            return HeadURLResolver.deserializeMiniMessage(input);
-        }
-        if (input.contains("&")) {
-            return LegacyComponentSerializer.legacyAmpersand().deserialize(input);
-        }
-        if (input.contains("§")) {
-            return LegacyComponentSerializer.legacySection().deserialize(input);
-        }
-        return HeadURLResolver.deserializeMiniMessage(input);
+        return DialogComponentUtils.parse(input);
     }
 }

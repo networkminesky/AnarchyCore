@@ -1,5 +1,7 @@
 package anarchy.minesky.core.api.text;
 
+import anarchy.minesky.core.api.utils.HeadURLResolver;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
@@ -20,6 +22,9 @@ import java.util.regex.Pattern;
 public final class DialogComponentUtils {
 
     private static final Pattern HEX_AMPERSAND = Pattern.compile("&#([A-Fa-f0-9]{6})");
+    /** Formato legacy de cor hex: &x&r&r&g&g&b&b */
+    private static final Pattern LEGACY_HEX = Pattern.compile("&x(&[0-9a-fA-F]){6}");
+    private static final Pattern HEAD_PLACEHOLDER = Pattern.compile("\\{head:([a-zA-Z0-9_\\-]+)}");
     private static final Pattern CHAT_URL = Pattern.compile("(https?://\\S+|www\\.\\S+)", Pattern.CASE_INSENSITIVE);
 
     /**
@@ -97,6 +102,15 @@ public final class DialogComponentUtils {
     public static Component parse(String input) {
         if (input == null || input.isEmpty()) return Component.empty();
         input = normalizeLegacyColors(input);
+        if (containsMiniMessage(input)) {
+            try {
+                return MiniMessage.miniMessage().deserialize(
+                        legacyColorsToMini(input),
+                        HeadURLResolver.mineSkyMiniMessageTags());
+            } catch (Exception e) {
+                return Component.text(input);
+            }
+        }
         if (input.contains("&")) {
             return LegacyComponentSerializer.legacyAmpersand().deserialize(input);
         }
@@ -104,10 +118,89 @@ public final class DialogComponentUtils {
             return LegacyComponentSerializer.legacySection().deserialize(input);
         }
         try {
-            return MiniMessage.miniMessage().deserialize(input);
+            return MiniMessage.miniMessage().deserialize(input, HeadURLResolver.mineSkyMiniMessageTags());
         } catch (Exception e) {
             return Component.text(input);
         }
+    }
+
+    private static boolean containsMiniMessage(String input) {
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+        return input.indexOf('<') >= 0 && (
+                input.contains("<#")
+                        || input.contains("</")
+                        || input.contains("<color:")
+                        || input.contains("<c:")
+                        || input.contains("<head:")
+                        || input.contains("<head_url:")
+                        || input.contains("<gradient")
+                        || input.contains("<rainbow")
+                        || input.contains("<!italic>")
+                        || input.contains("<italic")
+                        || input.contains("<white>")
+                        || input.contains("<green>")
+                        || input.contains("<gray>")
+                        || input.contains("<yellow>")
+                        || input.contains("<gold>")
+                        || input.contains("<red>")
+                        || input.contains("<bold>")
+                        || input.contains("<reset>")
+                        || HEAD_PLACEHOLDER.matcher(input).find());
+    }
+
+    private static String legacyColorsToMini(String input) {
+        if (input == null || !input.contains("&")) {
+            return input;
+        }
+        String withHex = convertLegacyHexToMini(input);
+        return withHex
+                .replace("&0", "<black>")
+                .replace("&1", "<dark_blue>")
+                .replace("&2", "<dark_green>")
+                .replace("&3", "<dark_aqua>")
+                .replace("&4", "<dark_red>")
+                .replace("&5", "<dark_purple>")
+                .replace("&6", "<gold>")
+                .replace("&7", "<gray>")
+                .replace("&8", "<dark_gray>")
+                .replace("&9", "<blue>")
+                .replace("&a", "<green>")
+                .replace("&b", "<aqua>")
+                .replace("&c", "<red>")
+                .replace("&d", "<light_purple>")
+                .replace("&e", "<yellow>")
+                .replace("&f", "<white>")
+                .replace("&l", "<bold>")
+                .replace("&o", "<italic>")
+                .replace("&n", "<underlined>")
+                .replace("&m", "<strikethrough>")
+                .replace("&k", "<obfuscated>")
+                .replace("&r", "<reset>");
+    }
+
+    private static String convertLegacyHexToMini(String input) {
+        Matcher ampersandMatcher = HEX_AMPERSAND.matcher(input);
+        StringBuilder outAmp = new StringBuilder();
+        while (ampersandMatcher.find()) {
+            ampersandMatcher.appendReplacement(outAmp, "<#" + ampersandMatcher.group(1) + ">");
+        }
+        ampersandMatcher.appendTail(outAmp);
+        String step1 = outAmp.toString();
+
+        Matcher matcher = LEGACY_HEX.matcher(step1);
+        StringBuilder out = new StringBuilder();
+        while (matcher.find()) {
+            String legacy = matcher.group();
+            StringBuilder hex = new StringBuilder("#");
+            for (int i = 2; i < legacy.length(); i += 2) {
+                hex.append(legacy.charAt(i + 1));
+            }
+            matcher.appendReplacement(out, Matcher.quoteReplacement("<" + hex + ">"));
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     /**

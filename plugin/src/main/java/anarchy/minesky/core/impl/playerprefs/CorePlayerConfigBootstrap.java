@@ -31,6 +31,13 @@ public final class CorePlayerConfigBootstrap {
                 .sortOrder(20)
                 .build());
 
+        registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_FRIENDS)
+                .title(messages.component("config.dialog.categories.friends.title"))
+                .buttonLabel(messages.component("config.dialog.categories.friends.button"))
+                .iconMaterial(Material.PLAYER_HEAD)
+                .sortOrder(30)
+                .build());
+
         registry.registerCategory(plugin, PlayerConfigCategorySpec.builder(PlayerConfigKeys.CATEGORY_CHAT)
                 .title(messages.component("config.dialog.categories.chat.title"))
                 .buttonLabel(messages.component("config.dialog.categories.chat.button"))
@@ -59,6 +66,30 @@ public final class CorePlayerConfigBootstrap {
         registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
                         PlayerConfigKeys.TELL_NOTIFICATION_SOUNDS, PlayerConfigKeys.CATEGORY_TELL)
                 .label(DialogComponentUtils.parse(messages.raw("config.options.tell-sounds")))
+                .defaultValue(true)
+                .build());
+
+        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
+                        PlayerConfigKeys.FRIENDS_ALLOW_INCOMING_REQUESTS, PlayerConfigKeys.CATEGORY_FRIENDS)
+                .label(DialogComponentUtils.parse(messages.raw("config.options.friends-allow-requests")))
+                .defaultValue(true)
+                .build());
+
+        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
+                        PlayerConfigKeys.FRIENDS_REQUEST_SOUNDS, PlayerConfigKeys.CATEGORY_FRIENDS)
+                .label(DialogComponentUtils.parse(messages.raw("config.options.friends-request-sounds")))
+                .defaultValue(true)
+                .build());
+
+        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
+                        PlayerConfigKeys.FRIENDS_NOTIFY_ON_FRIEND_JOIN, PlayerConfigKeys.CATEGORY_FRIENDS)
+                .label(DialogComponentUtils.parse(messages.raw("config.options.friends-notify-join")))
+                .defaultValue(true)
+                .build());
+
+        registry.registerBooleanOption(plugin, PlayerConfigBooleanOptionSpec.builder(
+                        PlayerConfigKeys.FRIENDS_JOIN_SOUNDS, PlayerConfigKeys.CATEGORY_FRIENDS)
+                .label(DialogComponentUtils.parse(messages.raw("config.options.friends-join-sounds")))
                 .defaultValue(true)
                 .build());
 

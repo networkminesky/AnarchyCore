@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Amizades persistentes: linha {@code (player_uuid, friend_uuid)} = {@code player} listou {@code friend}.
+ * Amizades (ambas as direções em {@code ac_player_friends}), pedidos em {@code ac_player_friend_requests}.
  */
 public final class FriendsRepository {
 
@@ -25,34 +25,61 @@ public final class FriendsRepository {
         return database.isActive();
     }
 
-    public boolean addFriend(UUID playerId, UUID friendId) {
-        if (!database.isActive() || playerId == null || friendId == null || playerId.equals(friendId)) {
+    /**
+     * Amizade mútua: ambas as direções em {@code ac_player_friends}.
+     * @return true se pelo menos uma linha foi inserida (novo par).
+     */
+    public boolean addFriendshipMutual(UUID a, UUID b) {
+        if (!database.isActive() || a == null || b == null || a.equals(b)) {
             return false;
         }
         Boolean ok = database.querySync(connection -> {
+            boolean any = false;
             try (PreparedStatement ps = connection.prepareStatement("""
                     INSERT IGNORE INTO ac_player_friends (player_uuid, friend_uuid) VALUES (?, ?)
                     """)) {
-                ps.setString(1, playerId.toString());
-                ps.setString(2, friendId.toString());
-                return ps.executeUpdate() > 0;
+                ps.setString(1, a.toString());
+                ps.setString(2, b.toString());
+                if (ps.executeUpdate() > 0) {
+                    any = true;
+                }
             }
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    INSERT IGNORE INTO ac_player_friends (player_uuid, friend_uuid) VALUES (?, ?)
+                    """)) {
+                ps.setString(1, b.toString());
+                ps.setString(2, a.toString());
+                if (ps.executeUpdate() > 0) {
+                    any = true;
+                }
+            }
+            return any;
         });
         return Boolean.TRUE.equals(ok);
     }
 
-    public boolean removeFriend(UUID playerId, UUID friendId) {
+    /** Remove a amizade nas duas direções. */
+    public boolean removeFriendshipMutual(UUID playerId, UUID friendId) {
         if (!database.isActive() || playerId == null || friendId == null) {
             return false;
         }
         Boolean ok = database.querySync(connection -> {
+            int n = 0;
             try (PreparedStatement ps = connection.prepareStatement("""
                     DELETE FROM ac_player_friends WHERE player_uuid = ? AND friend_uuid = ?
                     """)) {
                 ps.setString(1, playerId.toString());
                 ps.setString(2, friendId.toString());
-                return ps.executeUpdate() > 0;
+                n += ps.executeUpdate();
             }
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    DELETE FROM ac_player_friends WHERE player_uuid = ? AND friend_uuid = ?
+                    """)) {
+                ps.setString(1, friendId.toString());
+                ps.setString(2, playerId.toString());
+                n += ps.executeUpdate();
+            }
+            return n > 0;
         });
         return Boolean.TRUE.equals(ok);
     }
@@ -63,16 +90,101 @@ public final class FriendsRepository {
         }
         Boolean ok = database.querySync(connection -> {
             try (PreparedStatement ps = connection.prepareStatement("""
-                    SELECT 1 FROM ac_player_friends WHERE player_uuid = ? AND friend_uuid = ? LIMIT 1
+                    SELECT 1 FROM ac_player_friends
+                    WHERE (player_uuid = ? AND friend_uuid = ?) OR (player_uuid = ? AND friend_uuid = ?)
+                    LIMIT 1
                     """)) {
-                ps.setString(1, playerId.toString());
-                ps.setString(2, friendId.toString());
+                String a = playerId.toString();
+                String b = friendId.toString();
+                ps.setString(1, a);
+                ps.setString(2, b);
+                ps.setString(3, b);
+                ps.setString(4, a);
                 try (ResultSet rs = ps.executeQuery()) {
                     return rs.next();
                 }
             }
         });
         return Boolean.TRUE.equals(ok);
+    }
+
+    /** true se inseriu novo pedido; false se já existia (duplicata). */
+    public boolean createRequest(UUID fromId, UUID toId) {
+        if (!database.isActive() || fromId == null || toId == null || fromId.equals(toId)) {
+            return false;
+        }
+        Boolean ok = database.querySync(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    INSERT IGNORE INTO ac_player_friend_requests (from_uuid, to_uuid) VALUES (?, ?)
+                    """)) {
+                ps.setString(1, fromId.toString());
+                ps.setString(2, toId.toString());
+                return ps.executeUpdate() > 0;
+            }
+        });
+        return Boolean.TRUE.equals(ok);
+    }
+
+    public boolean deleteRequest(UUID fromId, UUID toId) {
+        if (!database.isActive() || fromId == null || toId == null) {
+            return false;
+        }
+        Boolean ok = database.querySync(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    DELETE FROM ac_player_friend_requests WHERE from_uuid = ? AND to_uuid = ?
+                    """)) {
+                ps.setString(1, fromId.toString());
+                ps.setString(2, toId.toString());
+                return ps.executeUpdate() > 0;
+            }
+        });
+        return Boolean.TRUE.equals(ok);
+    }
+
+    public boolean hasOutgoingRequest(UUID fromId, UUID toId) {
+        if (!database.isActive() || fromId == null || toId == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(database.querySync(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    SELECT 1 FROM ac_player_friend_requests WHERE from_uuid = ? AND to_uuid = ? LIMIT 1
+                    """)) {
+                ps.setString(1, fromId.toString());
+                ps.setString(2, toId.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        }));
+    }
+
+    public boolean hasIncomingRequest(UUID toId, UUID fromId) {
+        return hasOutgoingRequest(fromId, toId);
+    }
+
+    /** Pedidos recebidos por {@code toId} (quem enviou). */
+    public List<UUID> listIncomingRequestFromUuids(UUID toId) {
+        if (!database.isActive() || toId == null) {
+            return List.of();
+        }
+        List<UUID> list = database.querySync(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement("""
+                    SELECT from_uuid FROM ac_player_friend_requests WHERE to_uuid = ? ORDER BY created_at ASC
+                    """)) {
+                ps.setString(1, toId.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<UUID> out = new ArrayList<>();
+                    while (rs.next()) {
+                        try {
+                            out.add(UUID.fromString(rs.getString("from_uuid")));
+                        } catch (IllegalArgumentException ignored) {
+                        }
+                    }
+                    return out;
+                }
+            }
+        });
+        return list != null ? list : List.of();
     }
 
     /**
@@ -88,18 +200,23 @@ public final class FriendsRepository {
 
     private static List<UUID> loadFriendUuids(Connection connection, UUID playerId) throws java.sql.SQLException {
         try (PreparedStatement ps = connection.prepareStatement("""
-                SELECT friend_uuid FROM ac_player_friends WHERE player_uuid = ? ORDER BY created_at ASC
+                SELECT friend_uuid FROM ac_player_friends WHERE player_uuid = ?
+                UNION
+                SELECT player_uuid AS friend_uuid FROM ac_player_friends WHERE friend_uuid = ?
+                ORDER BY friend_uuid
                 """)) {
-            ps.setString(1, playerId.toString());
+            String id = playerId.toString();
+            ps.setString(1, id);
+            ps.setString(2, id);
             try (ResultSet rs = ps.executeQuery()) {
-                List<UUID> out = new ArrayList<>();
+                LinkedHashSet<UUID> distinct = new LinkedHashSet<>();
                 while (rs.next()) {
                     try {
-                        out.add(UUID.fromString(rs.getString("friend_uuid")));
+                        distinct.add(UUID.fromString(rs.getString("friend_uuid")));
                     } catch (IllegalArgumentException ignored) {
                     }
                 }
-                return out;
+                return new ArrayList<>(distinct);
             }
         }
     }

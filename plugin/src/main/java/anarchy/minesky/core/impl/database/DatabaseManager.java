@@ -238,6 +238,15 @@ public final class DatabaseManager {
                           INDEX idx_friends_friend (friend_uuid)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_friend_requests (
+                          from_uuid CHAR(36) NOT NULL,
+                          to_uuid CHAR(36) NOT NULL,
+                          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          PRIMARY KEY (from_uuid, to_uuid),
+                          INDEX idx_friend_req_to (to_uuid)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }

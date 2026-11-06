@@ -10,6 +10,7 @@ import anarchy.minesky.core.impl.playerprefs.ConfigManager;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -107,6 +108,22 @@ public final class PrivateMessageService {
         rememberPartners(sender, target);
     }
 
+    /**
+     * Abre o diálogo de tell para um amigo (UUID); usa nick online ou o último nick conhecido.
+     */
+    public void openTellDialogForFriend(Player sender, java.util.UUID friendId, String nameFallback) {
+        if (friendId == null) {
+            return;
+        }
+        String targetName = resolveNameForTell(friendId, nameFallback);
+        if (targetName == null) {
+            feedbackPlayer(sender, messages.component("commands.player-not-found", "player",
+                    nameFallback != null ? nameFallback : "?"));
+            return;
+        }
+        openTellDialog(sender, targetName);
+    }
+
     private void openTellDialog(Player sender, String targetName) {
         Player target = resolveOnlinePlayer(targetName);
         if (target == null) {
@@ -133,6 +150,21 @@ public final class PrivateMessageService {
                     sendTell(player, resolvedTarget, text.trim());
                 })
                 .show(sender);
+    }
+
+    private static String resolveNameForTell(java.util.UUID friendId, String fallback) {
+        Player online = Bukkit.getPlayer(friendId);
+        if (online != null && online.isOnline()) {
+            return online.getName();
+        }
+        OfflinePlayer off = Bukkit.getOfflinePlayer(friendId);
+        if (off.getName() != null && !off.getName().isBlank()) {
+            return off.getName();
+        }
+        if (fallback != null && fallback.matches("[a-zA-Z0-9_]{1,16}")) {
+            return fallback;
+        }
+        return null;
     }
 
     private void rememberPartners(Player a, Player b) {

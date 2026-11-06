@@ -10,7 +10,9 @@ import java.util.UUID;
  * <p>
  * Categorias e opções são registradas em {@link #registry()}. Valores refletem o que o jogador escolheu
  * no diálogo; não incluem regras extras (ex.: admin ignorando bloqueio de desconhecidos) —
- * use os métodos {@code canReceive*} para isso.
+ * use os métodos {@code canReceive*} para isso. Com o sistema de amigos ativo no banco,
+ * “desconhecido” significa quem não é seu amigo (tabelas de amizade); caso contrário,
+ * usa a lista legada de jogadores com interação anterior.
  */
 public interface PlayerConfigAPI {
 
