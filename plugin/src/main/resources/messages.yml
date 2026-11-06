@@ -255,3 +255,34 @@ config:
     chat-global-enabled: "Participar do chat global"
     chat-heads-enabled: "Cabeças dos jogadores no chat"
 
+friends:
+  usage:
+    generic: "&#FF6B6BUso: &#FFFFFF/amigo [adicionar|remover|listar] [nick]"
+    adicionar: "&#FF6B6BUso: &#FFFFFF/amigo adicionar <nick>"
+    remover: "&#FF6B6BUso: &#FFFFFF/amigo remover <nick>"
+  error:
+    database: "&#FF6B6BLista de amigos indisponível (banco de dados desligado)."
+    self: "&#FF6B6BVocê não pode adicionar a si mesmo."
+    already: "&#AAAAAA{player} &#AAAAAAjá está na sua lista."
+    not-friend: "&#FF6B6B{player} &#FF6B6Bnão está na sua lista."
+    not-online: "&#FF6B6B{player} &#FF6B6Bnão está online ou saiu."
+    cannot-add: "&#FF6B6BNão é possível adicionar este jogador agora."
+  added: "&#7BED9F{player} &#7BED9Ffoi adicionado(a) à sua lista de amigos."
+  removed: "&#FF6B6B{player} &#FF6B6Bfoi removido(a) da sua lista."
+  list-empty: "&#AAAAAAVocê ainda não tem amigos. Use &#FFFFFF/amigo &#AAAAAAou &#FFFFFF/amigo adicionar <nick>&#AAAAAA."
+  list-header: "&#7BED9FSeus amigos:"
+  list-line-online: "&#7BED9F● &#FFFFFF{player} &#7BED9F— online"
+  list-line-offline: "&#AAAAAA○ &#FFFFFF{player} &#AAAAAA— offline"
+  notify-join: "&#7BED9FSeu amigo &#FFFFFF{player} &#7BED9Fentrou no servidor."
+  dialog:
+    list-title: "&#7BED9FAmigos"
+    list-body: "&#FFFFFFTotal: &#7BED9F{count}"
+    add-button: "&#7BED9FAdicionar amigo"
+    pick-player-title: "&#7BED9FAdicionar amigo — buscar jogador"
+    close-button: "&#AAAAAAFechar"
+    page-prev: "Anterior"
+    page-next: "Próxima"
+  status:
+    online: "&#7BED9F● online"
+    offline: "&#AAAAAA○ offline"
+

@@ -23,6 +23,7 @@ import anarchy.minesky.core.command.HomeCommand;
 import anarchy.minesky.core.command.SetHomeCommand;
 import anarchy.minesky.core.command.SetWarpCommand;
 import anarchy.minesky.core.command.SpawnCommand;
+import anarchy.minesky.core.command.AmigoCommand;
 import anarchy.minesky.core.command.WarpCommand;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.dialogapi.DialogManager;
@@ -47,6 +48,8 @@ import anarchy.minesky.core.impl.playerprefs.ConfigManager;
 import anarchy.minesky.core.impl.playerprefs.EscPauseMenuSupport;
 import anarchy.minesky.core.impl.playerprefs.PlayerConfigAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesRepository;
+import anarchy.minesky.core.impl.friends.FriendsManager;
+import anarchy.minesky.core.impl.friends.FriendsRepository;
 import anarchy.minesky.core.impl.playerdata.PlayerDataAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import anarchy.minesky.core.command.GuardCommandHandler;
@@ -88,6 +91,8 @@ public final class AnarchyCore extends JavaPlugin {
     private PlayerPreferencesService playerPreferencesService;
     private PlayerConfigAPIImpl playerConfigApi;
     private PlayerDataAPIImpl playerDataApi;
+    private FriendsRepository friendsRepository;
+    private FriendsManager friendsManager;
     private ConfigManager configManager;
     private GuardSettings guardSettings;
     private GuardManager guardManager;
@@ -136,6 +141,8 @@ public final class AnarchyCore extends JavaPlugin {
         this.playerConfigApi.register();
         this.playerDataApi = new PlayerDataAPIImpl(this, databaseManager);
         this.playerDataApi.register();
+        this.friendsRepository = new FriendsRepository(databaseManager);
+        this.friendsManager = new FriendsManager(this, messagesManager, feedbackManager, friendsRepository, playerDataApi);
         this.configManager = new ConfigManager(
                 messagesManager, feedbackManager, playerPreferencesService, playerConfigApi.registry(), uiSoundsApi);
 
@@ -181,6 +188,7 @@ public final class AnarchyCore extends JavaPlugin {
         registerCommands();
 
         getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
+        getServer().getPluginManager().registerEvents(new FriendsJoinListener(friendsManager), this);
         getServer().getPluginManager().registerEvents(
                 new PlayerPreferencesListener(this, playerPreferencesService, configManager, playerDataApi, tpaManager), this);
         getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.loadPlayer(p.getUniqueId()));
@@ -263,6 +271,9 @@ public final class AnarchyCore extends JavaPlugin {
                 List.of("configurar", "personalizar", "preferencias", "settings"),
                 new ConfigCommand(messagesManager, configManager),
                 null);
+
+        AmigoCommand amigoCommand = new AmigoCommand(messagesManager, feedbackManager, friendsManager);
+        bind("amigo", "Lista de amigos (menu) ou adicionar/remover/listar", List.of("amigos", "friends"), amigoCommand, amigoCommand);
     }
 
     private void bind(
@@ -363,6 +374,8 @@ public final class AnarchyCore extends JavaPlugin {
         homeManager = null;
         homeRepository = null;
         homeSettings = null;
+        friendsManager = null;
+        friendsRepository = null;
         if (databaseManager != null) {
             if (playerPreferencesService != null) {
                 getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.unloadPlayer(p.getUniqueId()));

@@ -229,6 +229,15 @@ public final class DatabaseManager {
                           INDEX idx_guard_history_player_time (player_uuid, recorded_at DESC)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_friends (
+                          player_uuid CHAR(36) NOT NULL,
+                          friend_uuid CHAR(36) NOT NULL,
+                          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          PRIMARY KEY (player_uuid, friend_uuid),
+                          INDEX idx_friends_friend (friend_uuid)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }

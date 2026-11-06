@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public interface DialogAPI {
 
@@ -58,4 +59,29 @@ public interface DialogAPI {
     void openMaterialPicker(Player player, String title, String initialQuery, Consumer<Material> onSelected);
 
     void openMaterialPicker(Player player, Component title, String initialQuery, Consumer<Material> onSelected);
+
+    /**
+     * Busca por nick entre jogadores online (filtrados por {@code visible}); retorna o nick exato ao clicar.
+     */
+    default void openPlayerPicker(Player player, String title, Predicate<Player> visible, Consumer<String> onNickSelected) {
+        openPlayerPicker(player, title, visible, null, onNickSelected);
+    }
+
+    void openPlayerPicker(
+            Player player,
+            String title,
+            Predicate<Player> visible,
+            String initialQuery,
+            Consumer<String> onNickSelected);
+
+    default void openPlayerPicker(Player player, Component title, Predicate<Player> visible, Consumer<String> onNickSelected) {
+        openPlayerPicker(player, title, visible, null, onNickSelected);
+    }
+
+    void openPlayerPicker(
+            Player player,
+            Component title,
+            Predicate<Player> visible,
+            String initialQuery,
+            Consumer<String> onNickSelected);
 }

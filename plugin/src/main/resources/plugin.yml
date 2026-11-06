@@ -88,3 +88,6 @@ permissions:
   anarchycore.guard.fog.bypass:
     description: Enxerga jogadores através do Fog of War
     default: op
+  anarchycore.friends:
+    description: Usar /amigo — lista, adicionar e remover amigos
+    default: true

@@ -2,6 +2,7 @@ package anarchy.minesky.core.utils;
 
 import org.bukkit.ChatColor;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,5 +28,17 @@ public class Utils {
         message = result.toString();
 
         return ChatColor.translateAlternateColorCodes('&', message);
+    }
+
+    public static boolean isVanished(org.bukkit.entity.Player player) {
+        if (player == null) {
+            return false;
+        }
+        for (String key : List.of("vanished", "vanish")) {
+            if (player.hasMetadata(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -11,14 +11,27 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 public final class DialogManager implements DialogAPI {
 
     private final Plugin plugin;
     private final MaterialPickerDialog materialPicker;
+    private final PlayerPickerDialog playerPicker;
 
     public DialogManager(Plugin plugin) {
         this.plugin = plugin;
         this.materialPicker = new MaterialPickerDialog(plugin);
+        this.playerPicker = new PlayerPickerDialog();
+    }
+
+    public Plugin plugin() {
+        return plugin;
+    }
+
+    public PlayerPickerDialog playerPicker() {
+        return playerPicker;
     }
 
     public void start() {
@@ -88,6 +101,33 @@ public final class DialogManager implements DialogAPI {
         player.getScheduler().run(plugin, task -> {
             if (plugin.isEnabled()) {
                 materialPicker.open(player, title, initialQuery, onSelected);
+            }
+        }, null);
+    }
+
+    @Override
+    public void openPlayerPicker(
+            Player player,
+            String title,
+            Predicate<Player> visible,
+            String initialQuery,
+            Consumer<String> onNickSelected) {
+        openPlayerPicker(player, DialogComponentUtils.parse(title), visible, initialQuery, onNickSelected);
+    }
+
+    @Override
+    public void openPlayerPicker(
+            Player player,
+            Component title,
+            Predicate<Player> visible,
+            String initialQuery,
+            Consumer<String> onNickSelected) {
+        if (player == null || !player.isOnline() || onNickSelected == null || !plugin.isEnabled()) {
+            return;
+        }
+        player.getScheduler().run(plugin, task -> {
+            if (plugin.isEnabled()) {
+                playerPicker.open(player, title, visible, initialQuery, onNickSelected);
             }
         }, null);
     }
