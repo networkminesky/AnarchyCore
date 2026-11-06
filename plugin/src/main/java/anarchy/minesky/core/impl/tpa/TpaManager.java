@@ -96,7 +96,13 @@ public final class TpaManager {
         purgeExpired();
 
         List<TpaRequest> list = incomingByTarget.computeIfAbsent(target.getUniqueId(), id -> new ArrayList<>());
-        list.removeIf(r -> r.requesterId().equals(requester.getUniqueId()));
+        if (hasOpenRequestFrom(list, requester.getUniqueId())) {
+            notify(
+                    requester,
+                    messages.component("tpa.error.duplicate-pending", "target", target.getName()),
+                    true);
+            return;
+        }
 
         TpaRequest request = new TpaRequest(requester.getUniqueId(), target.getUniqueId(), type, System.currentTimeMillis());
         list.add(request);
@@ -456,6 +462,16 @@ public final class TpaManager {
         if (list.isEmpty()) {
             incomingByTarget.remove(request.targetId());
         }
+    }
+
+    /** Pedido ainda na fila do alvo (purgeExpired já rodou no fluxo de envio). */
+    private static boolean hasOpenRequestFrom(List<TpaRequest> list, UUID requesterId) {
+        for (TpaRequest r : list) {
+            if (r.requesterId().equals(requesterId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void notify(Player player, Component message, boolean error) {

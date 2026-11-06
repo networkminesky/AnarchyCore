@@ -93,6 +93,7 @@ tpa:
     self: "&#FF6B6BVocê não pode enviar pedido de TPA para si mesmo."
     no-request: "&#FF6B6BVocê não tem pedidos de TPA pendentes."
     requester-offline: "&#FF6B6BO jogador que enviou o pedido saiu do servidor."
+    duplicate-pending: "&#FF6B6BVocê já tem um pedido de TPA pendente para &#FFFFFF{target}&#FF6B6B. Aguarde resposta ou expiração."
     target-blocks-strangers: "&#FF6B6B&#FFFFFF{target} &#FF6B6Bnão aceita TPA de desconhecidos."
   request-sent-tpa: "&#7BED9FPedido enviado! &#FFFFFF{target} &#7BED9Fpode aceitar com &#FFFFFF/tpaceitar"
   request-sent-tpahere: "&#7BED9FPedido enviado! &#FFFFFF{target} &#7BED9Fpode aceitar com &#FFFFFF/tpaceitar"
