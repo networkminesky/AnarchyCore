@@ -53,6 +53,12 @@ import anarchy.minesky.core.impl.friends.FriendsRepository;
 import anarchy.minesky.core.impl.playerdata.PlayerDataAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import anarchy.minesky.core.command.GuardCommandHandler;
+import anarchy.minesky.core.command.KitsCommand;
+import anarchy.minesky.core.command.KitsCommandHandler;
+import anarchy.minesky.core.impl.kits.KitCooldownStorage;
+import anarchy.minesky.core.impl.kits.KitManager;
+import anarchy.minesky.core.impl.kits.KitStorage;
+import anarchy.minesky.core.listener.KitListener;
 import anarchy.minesky.core.impl.guard.GuardJoinListener;
 import anarchy.minesky.core.impl.guard.GuardManager;
 import anarchy.minesky.core.impl.guard.GuardPacketListener;
@@ -100,6 +106,10 @@ public final class AnarchyCore extends JavaPlugin {
     private GuardPacketListener guardPacketListener;
     private FogSettings fogSettings;
     private FogOfWarManager fogOfWar;
+    private KitStorage kitStorage;
+    private KitCooldownStorage kitCooldownStorage;
+    private KitManager kitManager;
+    private KitsCommandHandler kitsCommandHandler;
 
     @Override
     public void onEnable() {
@@ -111,6 +121,9 @@ public final class AnarchyCore extends JavaPlugin {
         this.warpSettings = new WarpSettings(this);
         this.warpStorage = new WarpStorage(this);
         this.warpStorage.load();
+
+        this.kitStorage = new KitStorage(this);
+        this.kitStorage.load();
 
         this.locatorManager = new LocatorManager(this);
         this.locatorManager.start();
@@ -141,6 +154,8 @@ public final class AnarchyCore extends JavaPlugin {
         this.playerConfigApi.register();
         this.playerDataApi = new PlayerDataAPIImpl(this, databaseManager);
         this.playerDataApi.register();
+        this.kitCooldownStorage = new KitCooldownStorage(this, playerDataApi);
+        this.kitCooldownStorage.migrateLegacyFile();
         this.friendsRepository = new FriendsRepository(databaseManager);
         playerPreferencesService.attachFriendsRepository(friendsRepository);
         this.configManager = new ConfigManager(
@@ -191,6 +206,10 @@ public final class AnarchyCore extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FogListener(fogOfWar), this);
         this.guardCommandHandler = new GuardCommandHandler(guardManager, fogOfWar, messagesManager, feedbackManager);
 
+        this.kitManager = new KitManager(messagesManager, feedbackManager, kitStorage, kitCooldownStorage);
+        this.kitsCommandHandler = new KitsCommandHandler(kitManager, messagesManager, feedbackManager);
+        getServer().getPluginManager().registerEvents(new KitListener(kitManager), this);
+
         if(getServer().getPluginManager().isPluginEnabled("SkinsRestorer")) {
             getLogger().info("Registrado evento de join para o SkinsRestorer");
             getServer().getPluginManager().registerEvents(new SkinJoinApplier(this), this);
@@ -202,7 +221,12 @@ public final class AnarchyCore extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FriendsJoinListener(friendsManager), this);
         getServer().getPluginManager().registerEvents(
                 new PlayerPreferencesListener(this, playerPreferencesService, configManager, playerDataApi, tpaManager), this);
-        getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.loadPlayer(p.getUniqueId()));
+        getServer().getOnlinePlayers().forEach(p -> {
+            playerPreferencesService.loadPlayer(p.getUniqueId());
+            if (kitManager != null) {
+                kitManager.preloadPlayer(p.getUniqueId());
+            }
+        });
         getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(), this);
     }
 
@@ -238,8 +262,12 @@ public final class AnarchyCore extends JavaPlugin {
 
         bind("r", "Responde a última mensagem privada", List.of("reply"), new ReplyCommand(messagesManager, privateMessageService), null);
 
-        AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(this, messagesManager, feedbackManager, guardCommandHandler);
+        AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(
+                this, messagesManager, feedbackManager, guardCommandHandler, kitsCommandHandler);
         bind("anarchycore", "Comandos administrativos do AnarchyCore", List.of("acore", "minesky"), coreCommand, coreCommand);
+
+        KitsCommand kitsCommand = new KitsCommand(messagesManager, kitManager);
+        bind("kits", "Abre o menu de kits", List.of("kit"), kitsCommand, null);
 
         TpaCommand tpaCommand = new TpaCommand(messagesManager, tpaManager);
         bind("tpa", "Pede teleporte até um jogador", List.of(), tpaCommand, tpaCommand);
@@ -307,6 +335,9 @@ public final class AnarchyCore extends JavaPlugin {
         }
         if (warpManager != null) {
             warpManager.reloadStorage();
+        }
+        if (kitManager != null) {
+            kitManager.reloadStorage();
         }
         if (homeSettings != null) {
             homeSettings.reload();

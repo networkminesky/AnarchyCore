@@ -10,7 +10,7 @@ commands:
   reply-no-target: "&cVocê não tem ninguém para responder."
   tell-self: "&cVocê não pode enviar mensagem privada para si mesmo."
   reload-success: "&aAnarchyCore recarregado com sucesso."
-  reload-usage: "&cUso: /anarchycore reload|guard ..."
+  reload-usage: "&cUso: /anarchycore reload|guard|kits ..."
 
 guard:
   usage: "&cUso: /anarchycore guard <check|info|history|fog> [jogador]"
@@ -178,6 +178,60 @@ warps:
       save-button: "&#7BED9FSalvar"
       cancel-button: "&#FF6B6BCancelar"
       cancelled: "&#AAAAAAEdição cancelada."
+
+kits:
+  error:
+    invalid-id: "&#FF6B6BID inválido. Use letras, números, _ ou - (máx. 32)."
+    not-found: "&#FF6B6BKit &#FFFFFF{kit} &#FF6B6Bnão existe."
+    no-permission: "&#FF6B6BVocê precisa da permissão &#FFFFFFanarchycore.kit.{kit} &#FF6B6Bpara resgatar."
+    none: "&#FF6B6BNenhum kit disponível no momento."
+    cooldown: "&#FF6B6BAguarde &#FFFFFF{time} &#FF6B6Bpara resgatar novamente."
+    empty: "&#FF6B6BEste kit ainda não tem itens."
+    inventory-space: "&#FF6B6BLibere mais &#FFFFFF{slots} &#FF6B6Bslot(s) no inventário para resgatar este kit."
+    already-exists: "&#FF6B6BJá existe um kit &#FFFFFF{kit}&#FF6B6B."
+  meta-saved: "&#7BED9FDados do kit &#FFFFFF{kit} &#7BED9Fsalvos. Edite o conteúdo abaixo."
+  content-saved: "&#7BED9FConteúdo do kit &#FFFFFF{kit} &#7BED9Fsalvo!"
+  cooldown-updated: "&#FFD166Cooldown: &#FFFFFF{time}"
+  claim-success: "&#7BED9FKit &#FFFFFF{kit} &#7BED9Fresgatado!"
+  admin:
+    usage: "&#FF6B6BUso: &#FFFFFF/anarchycore kits <create|edit|remove|reload> [id]"
+    create-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore kits create <id>"
+    edit-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore kits edit <id>"
+    remove-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore kits remove <id>"
+    remove-success: "&#FF6B6BKit &#FFFFFF{kit} &#FF6B6Bremovido."
+    reload-success: "&#7BED9FKits recarregados do disco."
+  dialog:
+    list:
+      title: "&#7BED9FKits"
+    editor:
+      create-title: "&#7BED9FCriar kit"
+      edit-title: "&#FFD166Editar kit"
+      create-body: "&#FFFFFFID: &#7BED9F{id}"
+      edit-body: "&#FFFFFFEditando: &#7BED9F{id}"
+      input-display: "Nome visível"
+      input-display-placeholder: "Ex: &#7BED9FIniciante"
+      pick-icon-button: "&#7BED9FEscolher ícone"
+      pick-icon-title: "&#7BED9FÍcone do kit"
+      save-button: "&#7BED9FSalvar e editar conteúdo"
+      cancel-button: "&#FF6B6BCancelar"
+      cancelled: "&#AAAAAAEdição cancelada."
+  menu:
+    filler: " "
+    admin:
+      title: "&#FFD166Editar — {kit}"
+      cooldown-minus-6h: "&#FF6B6B-6h"
+      cooldown-minus-1h: "&#FF6B6B-1h"
+      cooldown-minus-1m: "&#FF6B6B-1 min"
+      cooldown-plus-1m: "&#7BED9F+1 min"
+      cooldown-plus-1h: "&#7BED9F+1h"
+      cooldown-plus-6h: "&#7BED9F+6h"
+      cooldown-info: "&#FFD166Cooldown: &#FFFFFF{time}"
+      save: "&#7BED9FSalvar conteúdo"
+    preview:
+      title: "&#7BED9F{kit}"
+      claim: "&#7BED9FResgatar kit"
+      no-permission: "&#FF6B6BSem permissão"
+      cooldown: "&#FFD166Aguarde &#FFFFFF{time}"
 
 homes:
   usage:

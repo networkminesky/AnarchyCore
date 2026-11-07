@@ -3,6 +3,7 @@ package anarchy.minesky.core.command;
 import anarchy.minesky.core.AnarchyCore;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
+import anarchy.minesky.core.impl.kits.KitManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -24,16 +25,19 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
     private final MessagesManager messages;
     private final FeedbackManager feedback;
     private final GuardCommandHandler guardCommandHandler;
+    private final KitsCommandHandler kitsCommandHandler;
 
     public AnarchyCoreCommand(
             AnarchyCore plugin,
             MessagesManager messages,
             FeedbackManager feedback,
-            GuardCommandHandler guardCommandHandler) {
+            GuardCommandHandler guardCommandHandler,
+            KitsCommandHandler kitsCommandHandler) {
         this.plugin = plugin;
         this.messages = messages;
         this.feedback = feedback;
         this.guardCommandHandler = guardCommandHandler;
+        this.kitsCommandHandler = kitsCommandHandler;
     }
 
     @Override
@@ -58,6 +62,9 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("guard")) {
             return guardCommandHandler.handle(sender, args);
         }
+        if (args[0].equalsIgnoreCase("kits")) {
+            return kitsCommandHandler.handle(sender, args);
+        }
         send(sender, messages.component("commands.reload-usage"));
         return true;
     }
@@ -76,11 +83,17 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission(GuardCommandHandler.PERMISSION)) {
                 options.add("guard");
             }
+            if (sender.hasPermission(KitManager.ADMIN_PERMISSION)) {
+                options.add("kits");
+            }
             String prefix = args[0].toLowerCase(Locale.ROOT);
             return options.stream().filter(o -> o.startsWith(prefix)).toList();
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("guard")) {
             return guardCommandHandler.tabComplete(args);
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("kits")) {
+            return kitsCommandHandler.tabComplete(args);
         }
         return List.of();
     }
