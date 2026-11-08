@@ -2,6 +2,7 @@ package anarchy.minesky.core.impl.dialogapi;
 
 import anarchy.minesky.core.api.dialogapi.DialogAPI;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
+import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
 import anarchy.minesky.core.impl.dialogapi.renderers.BedrockDialogRenderer;
 import anarchy.minesky.core.impl.dialogapi.renderers.JavaDialogRenderer;
 import anarchy.minesky.core.api.text.DialogComponentUtils;
@@ -20,10 +21,14 @@ public final class DialogManager implements DialogAPI {
     private final MaterialPickerDialog materialPicker;
     private final PlayerPickerDialog playerPicker;
 
-    public DialogManager(Plugin plugin) {
+    public DialogManager(Plugin plugin, MaterialTranslationsAPI materialTranslations) {
         this.plugin = plugin;
-        this.materialPicker = new MaterialPickerDialog(plugin);
+        this.materialPicker = new MaterialPickerDialog(materialTranslations);
         this.playerPicker = new PlayerPickerDialog();
+    }
+
+    public void reloadMaterialSearch() {
+        materialPicker.reloadSearchIndex();
     }
 
     public Plugin plugin() {

@@ -6,7 +6,9 @@ import anarchy.minesky.core.api.locator.LocatorAPI;
 import anarchy.minesky.core.api.playerconfig.PlayerConfigAPI;
 import anarchy.minesky.core.api.playerdata.PlayerDataAPI;
 import anarchy.minesky.core.api.sounds.UiSoundsAPI;
+import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 
 public final class MineSkyAPI {
 
@@ -64,5 +66,23 @@ public final class MineSkyAPI {
 
     public static UiSoundsAPI uiSounds() {
         return getUiSounds();
+    }
+
+    public static MaterialTranslationsAPI materialTranslations() {
+        return MaterialTranslationsAPI.get();
+    }
+
+    /**
+     * Nome do material em português (pt_br.json). Fallback: nome em inglês formatado.
+     */
+    public static String getPortugueseName(Material material) {
+        MaterialTranslationsAPI api = materialTranslations();
+        if (api != null) {
+            return api.getPortugueseName(material);
+        }
+        if (material == null || material.isAir()) {
+            return "";
+        }
+        return material.name().toLowerCase().replace('_', ' ');
     }
 }

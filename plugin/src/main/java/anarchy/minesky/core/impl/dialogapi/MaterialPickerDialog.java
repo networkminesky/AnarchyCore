@@ -5,22 +5,14 @@ import anarchy.minesky.core.api.dialogapi.DialogResponse;
 import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.dialogapi.inputs.TextInput;
 import anarchy.minesky.core.api.text.DialogComponentUtils;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
+import anarchy.minesky.core.impl.text.MaterialTranslationsImpl;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.function.Consumer;
@@ -31,14 +23,16 @@ public final class MaterialPickerDialog {
     private static final String INPUT_QUERY = "query";
     private static final int MAX_RESULTS = 48;
 
-    private final Plugin plugin;
-    private final Map<String, String> translations;
+    private final MaterialTranslationsAPI translations;
     private final MaterialSearch searchIndex;
 
-    public MaterialPickerDialog(Plugin plugin) {
-        this.plugin = plugin;
-        this.translations = loadTranslations(plugin);
-        this.searchIndex = new MaterialSearch(this.translations);
+    public MaterialPickerDialog(MaterialTranslationsAPI translations) {
+        this.translations = translations;
+        this.searchIndex = new MaterialSearch(translations);
+    }
+
+    public void reloadSearchIndex() {
+        searchIndex.reload(translations);
     }
 
     public void open(Player player, Component title, Consumer<Material> onSelected) {
@@ -111,7 +105,7 @@ public final class MaterialPickerDialog {
 
     Component materialButtonLabel(Material material) {
         String displayName = searchIndex.getDisplayName(material);
-        String english = formatMaterialName(material);
+        String english = translations.getEnglishName(material);
 
         Component label = DialogComponentUtils.materialIconComponent(material)
                 .append(Component.space())
@@ -126,78 +120,16 @@ public final class MaterialPickerDialog {
         return label;
     }
 
-    public static String formatMaterialName(Material material) {
-        if (material == null) return "";
-        return material.name().toLowerCase(Locale.ROOT).replace('_', ' ');
-    }
-
-    private static Map<String, String> loadTranslations(Plugin plugin) {
-        Map<String, String> result = new HashMap<>();
-
-        // 1. plugins/<Plugin>/lang/pt_br.json
-        File langFile = new File(plugin.getDataFolder(), "lang/pt_br.json");
-
-        // 2. plugins/<Plugin>/pt_br.json
-        if (!langFile.exists()) {
-            File alt = new File(plugin.getDataFolder(), "pt_br.json");
-            if (alt.exists()) {
-                langFile = alt;
-            }
-        }
-
-        // 3. ./lang/pt_br.json na raiz do servidor
-        if (!langFile.exists()) {
-            File rootLang = new File("lang/pt_br.json");
-            if (rootLang.exists()) {
-                langFile = rootLang;
-            }
-        }
-
-        if (langFile.exists()) {
-            try (Reader reader = new InputStreamReader(new FileInputStream(langFile), StandardCharsets.UTF_8)) {
-                Type type = new TypeToken<Map<String, String>>() {}.getType();
-                Map<String, String> parsed = new Gson().fromJson(reader, type);
-                if (parsed != null) {
-                    result.putAll(parsed);
-                }
-                plugin.getLogger().info("Carregadas " + result.size() + " traduções pt_br de " + langFile.getPath());
-                return result;
-            } catch (Exception e) {
-                plugin.getLogger().warning("Erro ao carregar traduções de " + langFile.getPath() + ": " + e.getMessage());
-            }
-        }
-
-        // 4. Recursos embutidos no jar do plugin
-        InputStream in = plugin.getResource("lang/pt_br.json");
-        if (in == null) {
-            in = plugin.getResource("pt_br.json");
-        }
-        if (in != null) {
-            try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                Type type = new TypeToken<Map<String, String>>() {}.getType();
-                Map<String, String> parsed = new Gson().fromJson(reader, type);
-                if (parsed != null) {
-                    result.putAll(parsed);
-                }
-                plugin.getLogger().info("Carregadas " + result.size() + " traduções pt_br dos recursos internos.");
-            } catch (Exception e) {
-                plugin.getLogger().warning("Erro ao carregar traduções do recurso pt_br.json: " + e.getMessage());
-            }
-        }
-
-        return result;
-    }
-
     static final class MaterialSearch {
 
         private final List<MaterialEntry> entries = new ArrayList<>();
         private final Map<Material, String> displayNameCache = new EnumMap<>(Material.class);
 
-        MaterialSearch(Map<String, String> translations) {
+        MaterialSearch(MaterialTranslationsAPI translations) {
             reload(translations);
         }
 
-        void reload(Map<String, String> translations) {
+        void reload(MaterialTranslationsAPI translations) {
             entries.clear();
             displayNameCache.clear();
 
@@ -207,8 +139,8 @@ public final class MaterialPickerDialog {
                 if (material.isLegacy() || material.isAir() || !material.isItem()) {
                     continue;
                 }
-                String localized = resolveLocalizedName(material, translations);
-                String english = formatMaterialName(material);
+                String localized = translations.getPortugueseName(material);
+                String english = translations.getEnglishName(material);
                 displayNameCache.put(material, localized);
 
                 String normLoc = stripAccents(localized);
@@ -231,7 +163,7 @@ public final class MaterialPickerDialog {
         }
 
         String getDisplayName(Material material) {
-            return displayNameCache.getOrDefault(material, formatMaterialName(material));
+            return displayNameCache.getOrDefault(material, MaterialTranslationsImpl.formatEnglishName(material));
         }
 
         List<Material> search(String rawQuery, int limit) {
@@ -274,48 +206,6 @@ public final class MaterialPickerDialog {
                 }
             }
             return 3; // Presente no texto
-        }
-
-        private static String resolveLocalizedName(Material material, Map<String, String> translations) {
-            if (material.isLegacy()) {
-                return formatMaterialName(material);
-            }
-            if (translations != null && !translations.isEmpty()) {
-                String key;
-                try {
-                    key = material.getKey().getKey();
-                } catch (Throwable ignored) {
-                    key = material.name().toLowerCase(Locale.ROOT);
-                }
-                String name = null;
-
-                // 1. material.translationKey() (Translatable do Paper/Adventure)
-                try {
-                    name = translations.get(material.translationKey());
-                } catch (Throwable ignored) {
-                }
-
-                // 2. item.minecraft.<key>
-                if (name == null || name.isBlank()) {
-                    name = translations.get("item.minecraft." + key);
-                }
-
-                // 3. block.minecraft.<key>
-                if (name == null || name.isBlank()) {
-                    name = translations.get("block.minecraft." + key);
-                }
-
-                // 4. Chave direta
-                if (name == null || name.isBlank()) {
-                    name = translations.get(key);
-                }
-
-                if (name != null && !name.isBlank()) {
-                    return name;
-                }
-            }
-
-            return formatMaterialName(material);
         }
 
         private static String stripAccents(String input) {

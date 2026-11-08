@@ -30,6 +30,7 @@ import anarchy.minesky.core.impl.dialogapi.DialogManager;
 import anarchy.minesky.core.impl.feedback.FeedbackListener;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import anarchy.minesky.core.impl.sounds.GlobalSoundSettings;
+import anarchy.minesky.core.impl.text.MaterialTranslationsImpl;
 import anarchy.minesky.core.impl.sounds.UiSoundsAPIImpl;
 import anarchy.minesky.core.impl.locator.LocatorManager;
 import anarchy.minesky.core.impl.messaging.PrivateMessageService;
@@ -110,6 +111,7 @@ public final class AnarchyCore extends JavaPlugin {
     private KitCooldownStorage kitCooldownStorage;
     private KitManager kitManager;
     private KitsCommandHandler kitsCommandHandler;
+    private MaterialTranslationsImpl materialTranslations;
 
     @Override
     public void onEnable() {
@@ -128,7 +130,10 @@ public final class AnarchyCore extends JavaPlugin {
         this.locatorManager = new LocatorManager(this);
         this.locatorManager.start();
 
-        this.dialogManager = new DialogManager(this);
+        this.materialTranslations = new MaterialTranslationsImpl(this);
+        this.materialTranslations.register();
+
+        this.dialogManager = new DialogManager(this, materialTranslations);
         this.dialogManager.start();
 
         this.globalSoundSettings = new GlobalSoundSettings(this);
@@ -360,6 +365,12 @@ public final class AnarchyCore extends JavaPlugin {
         if (fogOfWar != null) {
             fogOfWar.reload();
         }
+        if (materialTranslations != null) {
+            materialTranslations.reload();
+            if (dialogManager != null) {
+                dialogManager.reloadMaterialSearch();
+            }
+        }
     }
 
     public GuardManager guardManager() {
@@ -400,6 +411,10 @@ public final class AnarchyCore extends JavaPlugin {
         if (dialogManager != null) {
             dialogManager.stop();
             dialogManager = null;
+        }
+        if (materialTranslations != null) {
+            materialTranslations.unregister();
+            materialTranslations = null;
         }
         if (locatorManager != null) {
             locatorManager.stop();
