@@ -69,6 +69,7 @@ import anarchy.minesky.core.impl.guard.GuardSettings;
 import anarchy.minesky.core.impl.guard.fog.FogListener;
 import anarchy.minesky.core.impl.guard.fog.FogOfWarManager;
 import anarchy.minesky.core.impl.guard.fog.FogSettings;
+import anarchy.minesky.core.impl.tab.TabSettings;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -112,6 +113,7 @@ public final class AnarchyCore extends JavaPlugin {
     private KitManager kitManager;
     private KitsCommandHandler kitsCommandHandler;
     private MaterialTranslationsImpl materialTranslations;
+    private TabSettings tabSettings;
 
     @Override
     public void onEnable() {
@@ -194,6 +196,8 @@ public final class AnarchyCore extends JavaPlugin {
         this.homeManager = new HomeManager(this, messagesManager, feedbackManager, homeSettings, homeRepository);
         getServer().getPluginManager().registerEvents(new HomeListener(homeManager), this);
 
+        this.tabSettings = new TabSettings(this);
+
         this.guardSettings = new GuardSettings(this);
         GuardRepository guardRepository = new GuardRepository(this, databaseManager, guardSettings);
         GuardPlayerSnapshot guardSnapshots = new GuardPlayerSnapshot();
@@ -232,7 +236,7 @@ public final class AnarchyCore extends JavaPlugin {
                 kitManager.preloadPlayer(p.getUniqueId());
             }
         });
-        getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(), this);
+        getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(tabSettings), this);
     }
 
     private void registerCommands() {
@@ -265,7 +269,7 @@ public final class AnarchyCore extends JavaPlugin {
         TellCommand tellCommand = new TellCommand(messagesManager, feedbackManager, privateMessageService);
         bind("tell", "Envia mensagem privada", List.of("msg", "w", "whisper"), tellCommand, tellCommand);
 
-        bind("r", "Responde a última mensagem privada", List.of("reply"), new ReplyCommand(messagesManager, privateMessageService), null);
+        bind("r", "Responde a última mensagem privada", List.of("responder"), new ReplyCommand(messagesManager, privateMessageService), null);
 
         AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(
                 this, messagesManager, feedbackManager, guardCommandHandler, kitsCommandHandler);
@@ -361,6 +365,9 @@ public final class AnarchyCore extends JavaPlugin {
         }
         if (guardSettings != null) {
             guardSettings.reload();
+        }
+        if (tabSettings != null) {
+            tabSettings.reload();
         }
         if (fogOfWar != null) {
             fogOfWar.reload();

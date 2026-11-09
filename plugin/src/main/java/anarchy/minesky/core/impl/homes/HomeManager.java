@@ -340,42 +340,66 @@ public final class HomeManager {
         }
     }
 
+    private static final int HOME_LIST_BTN_WIDTH = 260;
+    private static final int HOME_LIST_COLUMNS = 2;
+
     private void showHomeListDialog(Player player, List<HomeDefinition> homes, int limit, boolean showAllEmpty) {
         if (homes.isEmpty() && limit == 0) {
             notify(player, messages.component("homes.error.no-slots"), true);
             return;
         }
 
+        int maxLimit = settings.maxConfiguredLimit();
+
         MineSkyDialog.Builder builder = MineSkyDialog.builder(messages.raw("homes.dialog.list.title"))
                 .bodyItemIcon(new ItemStack(settings.listHeaderIcon()))
-                .multiActionColumns(1);
+                .multiActionColumns(HOME_LIST_COLUMNS);
 
         for (HomeDefinition home : homes) {
             builder.button(DialogButton.builder()
                     .label(home.menuButtonLabel())
-                    .width(260)
+                    .width(HOME_LIST_BTN_WIDTH)
                     .onClick(p -> openHomeDetail(p, home))
                     .build());
         }
 
         int remaining = Math.max(0, limit - homes.size());
         int preview = settings.emptySlotsPreview();
-        int emptyButtons = showAllEmpty || remaining <= preview ? remaining : preview;
+        int blockedBeyondPlayerLimit = Math.max(0, maxLimit - limit);
 
-        for (int i = 0; i < emptyButtons; i++) {
-            builder.button(DialogButton.builder()
-                    .label(messages.raw("homes.dialog.create-slot"))
-                    .width(260)
-                    .onClick(p -> beginQuickCreateHome(p))
-                    .build());
-        }
-
-        if (!showAllEmpty && remaining > preview) {
-            builder.button(DialogButton.builder()
-                    .label(messages.raw("homes.dialog.show-all-slots"))
-                    .width(260)
-                    .onClick(p -> openHomeList(p, true))
-                    .build());
+        if (showAllEmpty) {
+            for (int i = 0; i < remaining; i++) {
+                builder.button(DialogButton.builder()
+                        .label(messages.raw("homes.dialog.create-slot"))
+                        .width(HOME_LIST_BTN_WIDTH)
+                        .onClick(p -> beginQuickCreateHome(p))
+                        .build());
+            }
+            for (int i = 0; i < blockedBeyondPlayerLimit; i++) {
+                builder.button(DialogButton.builder()
+                        .label(messages.raw("homes.dialog.blocked-slot"))
+                        .width(HOME_LIST_BTN_WIDTH)
+                        .closeOnClick(false)
+                        .onClick(p -> {})
+                        .build());
+            }
+        } else {
+            int emptyButtons = Math.min(remaining, preview);
+            for (int i = 0; i < emptyButtons; i++) {
+                builder.button(DialogButton.builder()
+                        .label(messages.raw("homes.dialog.create-slot"))
+                        .width(HOME_LIST_BTN_WIDTH)
+                        .onClick(p -> beginQuickCreateHome(p))
+                        .build());
+            }
+            boolean hasMoreToShow = remaining > preview || blockedBeyondPlayerLimit > 0;
+            if (hasMoreToShow) {
+                builder.button(DialogButton.builder()
+                        .label(messages.raw("homes.dialog.show-all-slots"))
+                        .width(HOME_LIST_BTN_WIDTH)
+                        .onClick(p -> openHomeList(p, true))
+                        .build());
+            }
         }
 
         builder.show(player);

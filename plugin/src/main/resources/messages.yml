@@ -262,6 +262,7 @@ homes:
     list:
       title: "&#7BED9FSuas homes"
     create-slot: "&#7BED9FCriar home"
+    blocked-slot: "&#FF6B6BBloqueado"
     show-all-slots: "&#AAAAAAMostrar tudo"
     set-title: "&#7BED9FNome da home"
     set-body: "&#FFFFFFID: &#7BED9F{id}"

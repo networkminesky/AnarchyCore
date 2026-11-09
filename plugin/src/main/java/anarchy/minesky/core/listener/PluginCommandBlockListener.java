@@ -1,5 +1,7 @@
 package anarchy.minesky.core.listener;
 
+import anarchy.minesky.core.impl.tab.TabSettings;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -17,6 +19,7 @@ public final class PluginCommandBlockListener implements Listener {
     private static final Set<String> BLOCKED_ROOTS = Set.of(
             "plugins",
             "pl",
+            "?",
             "about",
             "ver",
             "version",
@@ -25,22 +28,34 @@ public final class PluginCommandBlockListener implements Listener {
             "icanhasbukkit"
     );
 
+    private final TabSettings tabSettings;
+
+    public PluginCommandBlockListener(TabSettings tabSettings) {
+        this.tabSettings = tabSettings;
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
-        if (event.getPlayer().hasPermission(ADMIN_PERMISSION)) {
+        Player player = event.getPlayer();
+        if (bypassesTabFilter(player)) {
+            if (!player.hasPermission(ADMIN_PERMISSION) && isBlockedCommand(event.getMessage())) {
+                event.setCancelled(true);
+            }
             return;
         }
         if (isBlockedCommand(event.getMessage())) {
+            event.setCancelled(true);
+            return;
+        }
+        Set<String> allowed = tabSettings.resolveAllowedRoots(player);
+        if (allowed != null && !isAllowedRoot(event.getMessage(), allowed)) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTabComplete(TabCompleteEvent event) {
-        if (!(event.getSender() instanceof org.bukkit.entity.Player player)) {
-            return;
-        }
-        if (player.hasPermission(ADMIN_PERMISSION)) {
+        if (!(event.getSender() instanceof Player player)) {
             return;
         }
         String buffer = event.getBuffer();
@@ -50,15 +65,50 @@ public final class PluginCommandBlockListener implements Listener {
         if (isBlockedCommand(buffer) || isCompletingBlockedRoot(buffer)) {
             event.getCompletions().clear();
             event.setCancelled(true);
+            return;
         }
+        if (!isRootTabComplete(buffer) || bypassesTabFilter(player)) {
+            return;
+        }
+        Set<String> allowed = tabSettings.resolveAllowedRoots(player);
+        if (allowed == null) {
+            return;
+        }
+        event.getCompletions().removeIf(completion -> !allowed.contains(TabSettings.normalizeCommandRoot(completion)));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCommandSend(PlayerCommandSendEvent event) {
-        if (event.getPlayer().hasPermission(ADMIN_PERMISSION)) {
-            return;
+        Player player = event.getPlayer();
+        boolean bypass = bypassesTabFilter(player);
+        Set<String> allowed = bypass ? null : tabSettings.resolveAllowedRoots(player);
+
+        event.getCommands().removeIf(label -> {
+            if (isBlockedRootLabel(label)) {
+                return true;
+            }
+            if (allowed == null) {
+                return false;
+            }
+            return !allowed.contains(TabSettings.normalizeCommandRoot(label));
+        });
+    }
+
+    private boolean bypassesTabFilter(Player player) {
+        return tabSettings.resolveAllowedRoots(player) == null;
+    }
+
+    private static boolean isRootTabComplete(String buffer) {
+        return !buffer.substring(1).contains(" ");
+    }
+
+    private static boolean isAllowedRoot(String rawMessage, Set<String> allowed) {
+        String message = rawMessage.trim();
+        if (!message.startsWith("/")) {
+            return false;
         }
-        event.getCommands().removeIf(PluginCommandBlockListener::isBlockedRootLabel);
+        String label = message.substring(1).split("\\s+", 2)[0];
+        return allowed.contains(TabSettings.normalizeCommandRoot(label));
     }
 
     private static boolean isBlockedCommand(String rawMessage) {
@@ -89,10 +139,6 @@ public final class PluginCommandBlockListener implements Listener {
     }
 
     private static String commandRoot(String label) {
-        int colon = label.indexOf(':');
-        if (colon >= 0 && colon < label.length() - 1) {
-            return label.substring(colon + 1);
-        }
-        return label;
+        return TabSettings.normalizeCommandRoot(label);
     }
 }

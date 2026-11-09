@@ -1,0 +1,105 @@
+# Comandos visíveis ao pressionar / (tab do cliente).
+# bypass-permission: vê todos os comandos do servidor (exceto os bloqueados abaixo).
+# Grupos somam: o jogador recebe a união de todos os grupos cuja permission ele possui.
+# permission vazia = grupo aplicado a todos.
+
+bypass-permission: minesky.admin
+
+default:
+  permission: ""
+  list:
+    - warp
+    - warps
+    - kits
+    - kit
+    - leilao
+    - ah
+    - "."
+    - aliado
+    - clan
+    - cla
+    - procurado
+    - "caçar"
+    - top
+    - bau
+    - vault
+    - tpa
+    - tpaqui
+    - tpauto
+    - tpanegar
+    - tpaceitar
+    - tpdeny
+    - tpaccept
+    - tpahere
+    - amigo
+    - amigos
+    - bal
+    - balance
+    - baltop
+    - buy
+    - comprar
+    - vender
+    - sell
+    - encomendas
+    - fragmentos
+    - pay
+    - pagar
+    - pix
+    - preco
+    - preço
+    - saldo
+    - rtp
+    - rtpfila
+    - rtpq
+    - escondernick
+    - c
+    - config
+    - configurar
+    - settings
+    - preferencias
+    - denuncia
+    - denunciar
+    - report
+    - home
+    - homes
+    - loja
+    - lojafrag
+    - tell
+    - msg
+    - ally
+    - tempojogo
+    - ping
+    - personalizar
+    - nv
+    - r
+    - responder
+    - reportar
+    - skin
+
+staff:
+  permission: minesky.staff
+  list:
+    - staff
+    - vanish
+    - tempban
+    - tempmute
+    - warn
+    - tempbanip
+    - banip
+    - ban
+    - tempmuteip
+    - tempwarn
+    - alts
+    - history
+    - dupeip
+    - checkban
+    - kick
+    - checkip
+    - unmute
+    - unban
+    - geoip
+    - checkmute
+    - banlist
+    - mute
+    - tp
+    - tphere

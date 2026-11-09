@@ -79,6 +79,15 @@ public final class HomeSettings {
         return limit;
     }
 
+    /** Maior limite definido na config (grupos + padrão), usado para pré-visualizar slots bloqueados. */
+    public int maxConfiguredLimit() {
+        int max = defaultLimit;
+        for (LimitGroup group : groups) {
+            max = Math.max(max, group.limit());
+        }
+        return max;
+    }
+
     public int defaultLimit() {
         return defaultLimit;
     }
