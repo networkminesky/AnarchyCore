@@ -79,6 +79,7 @@ default:
 staff:
   permission: minesky.staff
   list:
+    - s
     - staff
     - vanish
     - tempban
