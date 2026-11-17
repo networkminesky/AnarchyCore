@@ -116,10 +116,12 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
             }
         }
 
+        Map<String, String> bundled = loadBundled(plugin);
         if (langFile.exists()) {
             try (Reader reader = new InputStreamReader(new FileInputStream(langFile), StandardCharsets.UTF_8)) {
                 Type type = new TypeToken<Map<String, String>>() {}.getType();
                 Map<String, String> parsed = new Gson().fromJson(reader, type);
+                result.putAll(bundled);
                 if (parsed != null) {
                     result.putAll(parsed);
                 }
@@ -130,23 +132,31 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
             }
         }
 
+        result.putAll(bundled);
+        if (!result.isEmpty()) {
+            plugin.getLogger().info("Carregadas " + result.size() + " traduções pt_br dos recursos internos.");
+        }
+        return result;
+    }
+
+    private static Map<String, String> loadBundled(Plugin plugin) {
+        Map<String, String> bundled = new HashMap<>();
         InputStream in = plugin.getResource("lang/pt_br.json");
         if (in == null) {
             in = plugin.getResource("pt_br.json");
         }
-        if (in != null) {
-            try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-                Type type = new TypeToken<Map<String, String>>() {}.getType();
-                Map<String, String> parsed = new Gson().fromJson(reader, type);
-                if (parsed != null) {
-                    result.putAll(parsed);
-                }
-                plugin.getLogger().info("Carregadas " + result.size() + " traduções pt_br dos recursos internos.");
-            } catch (Exception e) {
-                plugin.getLogger().warning("Erro ao carregar traduções do recurso pt_br.json: " + e.getMessage());
-            }
+        if (in == null) {
+            return bundled;
         }
-
-        return result;
+        try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+            Type type = new TypeToken<Map<String, String>>() {}.getType();
+            Map<String, String> parsed = new Gson().fromJson(reader, type);
+            if (parsed != null) {
+                bundled.putAll(parsed);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Erro ao carregar traduções do recurso pt_br.json: " + e.getMessage());
+        }
+        return bundled;
     }
 }

@@ -38,6 +38,11 @@ public final class LegacyBukkitBasicCommand implements BasicCommand {
         if (tabCompleter == null) {
             return List.of();
         }
+        // Paper's greedy argument swallows the separator space, so tab right after
+        // "/comando " arrives as an empty array. Bukkit completers expect "".
+        if (args.length == 0) {
+            args = new String[]{ "" };
+        }
         List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), shell, label, args);
         return suggestions == null ? List.of() : suggestions;
     }

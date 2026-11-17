@@ -5,4 +5,9 @@
 /build/
 /api/build/
 /plugin/build/
+/plugin-test/build/
 /build/classes/java/main/
+/plugin/bin/
+/api/bin/
+/bin/
+*/bin/

@@ -1,0 +1,33 @@
+package anarchy.minesky.core.impl.referral;
+
+public enum ReferralRejectReason {
+    SELF_REFERRAL,
+    CIRCULAR_REFERRAL,
+    ALREADY_REDEEMED,
+    ACCOUNT_TOO_OLD,
+    CODE_NOT_FOUND,
+    CODE_BLOCKED,
+    REFERRER_BLOCKED,
+    INVITEE_BLOCKED,
+    SAME_IP,
+    SAME_SUBNET,
+    SUBNET_LIMIT,
+    VPN_DETECTED,
+    DATABASE_INACTIVE,
+    ECONOMY_UNAVAILABLE,
+    RATE_LIMITED,
+    INVALID_CODE,
+    REFERRER_CAP_DAILY,
+    REFERRER_CAP_WEEKLY,
+    REFERRER_CAP_TOTAL,
+    QUALIFICATION_FAILED,
+    EXPIRED,
+    NOT_FOUND,
+    ALREADY_REWARDED,
+    CONCURRENT_LOCK,
+    PUNISHED;
+
+    public String auditKey() {
+        return name();
+    }
+}

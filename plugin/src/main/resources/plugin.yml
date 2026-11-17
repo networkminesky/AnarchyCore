@@ -73,6 +73,24 @@ permissions:
   anarchycore.heal.others:
     description: Permite usar /heal em outros jogadores
     default: op
+  anarchycore.tp:
+    description: Permite /tp <jogador> para ir até outro jogador
+    default: op
+  anarchycore.tp.others:
+    description: Permite /tp <origem> <destino> para teleportar um jogador até outro
+    default: op
+  anarchycore.tphere:
+    description: Permite /tphere <jogador> para puxar um jogador até você
+    default: op
+  anarchycore.give:
+    description: Permite /i <item> [quantidade] para receber itens
+    default: op
+  anarchycore.gamemode:
+    description: Permite /gm, /gmc, /gms, /gma e /gmsp no próprio jogador
+    default: op
+  anarchycore.gamemode.others:
+    description: Permite alterar o gamemode de outros jogadores
+    default: op
   anarchycore.nv:
     description: Permite usar /nv para alternar visão noturna
     default: true
@@ -91,3 +109,9 @@ permissions:
   anarchycore.friends:
     description: Usar /amigo — lista, adicionar e remover amigos
     default: true
+  anarchycore.convite:
+    description: Usar /convite — gerar e resgatar códigos de indicação
+    default: true
+  anarchycore.convite.admin:
+    description: Comandos admin do sistema de convites (/anarchycore convite ...)
+    default: op

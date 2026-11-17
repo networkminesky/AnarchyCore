@@ -20,3 +20,11 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+
+permissions:
+  anarchycore.convite:
+    description: Usar /convite — gerar e resgatar códigos de indicação
+    default: true
+  anarchycore.convite.admin:
+    description: Comandos admin do sistema de convites
+    default: op

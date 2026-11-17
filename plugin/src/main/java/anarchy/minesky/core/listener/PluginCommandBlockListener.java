@@ -16,6 +16,9 @@ public final class PluginCommandBlockListener implements Listener {
 
     public static final String ADMIN_PERMISSION = "anarchycore.admin";
 
+    /** Comandos do próprio core que jogadores comuns podem usar mesmo com tab.yml antigo. */
+    private static final Set<String> CORE_PLAYER_ROOTS = Set.of("convite", "indicar", "referral");
+
     private static final Set<String> BLOCKED_ROOTS = Set.of(
             "plugins",
             "pl",
@@ -45,6 +48,9 @@ public final class PluginCommandBlockListener implements Listener {
         }
         if (isBlockedCommand(event.getMessage())) {
             event.setCancelled(true);
+            return;
+        }
+        if (isCorePlayerCommand(event.getMessage())) {
             return;
         }
         Set<String> allowed = tabSettings.resolveAllowedRoots(player);
@@ -87,6 +93,9 @@ public final class PluginCommandBlockListener implements Listener {
             if (isBlockedRootLabel(label)) {
                 return true;
             }
+            if (CORE_PLAYER_ROOTS.contains(TabSettings.normalizeCommandRoot(label))) {
+                return false;
+            }
             if (allowed == null) {
                 return false;
             }
@@ -109,6 +118,15 @@ public final class PluginCommandBlockListener implements Listener {
         }
         String label = message.substring(1).split("\\s+", 2)[0];
         return allowed.contains(TabSettings.normalizeCommandRoot(label));
+    }
+
+    private static boolean isCorePlayerCommand(String rawMessage) {
+        String message = rawMessage.trim();
+        if (!message.startsWith("/")) {
+            return false;
+        }
+        String label = message.substring(1).split("\\s+", 2)[0];
+        return CORE_PLAYER_ROOTS.contains(TabSettings.normalizeCommandRoot(label));
     }
 
     private static boolean isBlockedCommand(String rawMessage) {

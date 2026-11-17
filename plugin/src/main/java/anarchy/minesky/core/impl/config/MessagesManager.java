@@ -7,6 +7,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public final class MessagesManager {
@@ -24,7 +28,28 @@ public final class MessagesManager {
         if (!file.exists()) {
             plugin.saveResource("messages.yml", false);
         }
-        messages = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration loaded = YamlConfiguration.loadConfiguration(file);
+        // Chaves novas do jar continuam valendo se o messages.yml do servidor for antigo.
+        try (InputStream defaults = plugin.getResource("messages.yml")) {
+            if (defaults != null) {
+                YamlConfiguration bundled = YamlConfiguration.loadConfiguration(
+                        new InputStreamReader(defaults, StandardCharsets.UTF_8));
+                loaded.setDefaults(bundled);
+                loaded.options().copyDefaults(true);
+                if (!fileContainsReferral(file) && bundled.contains("referral.usage")) {
+                    loaded.save(file);
+                    plugin.getLogger().info("[Referral] Chaves novas de referral gravadas em messages.yml.");
+                }
+            }
+        } catch (IOException ignored) {
+            plugin.getLogger().warning("[Referral] Não foi possível mesclar messages.yml; chaves novas ficam só em memória.");
+        }
+        messages = loaded;
+    }
+
+    private static boolean fileContainsReferral(File file) throws IOException {
+        YamlConfiguration disk = YamlConfiguration.loadConfiguration(file);
+        return disk.contains("referral.usage");
     }
 
     public String raw(String path) {

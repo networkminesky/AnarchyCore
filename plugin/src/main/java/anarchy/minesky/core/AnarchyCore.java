@@ -4,6 +4,8 @@ import anarchy.minesky.core.command.BroadcastCommand;
 import anarchy.minesky.core.command.LegacyBukkitBasicCommand;
 import anarchy.minesky.core.command.ConfigCommand;
 import anarchy.minesky.core.command.AnarchyCoreCommand;
+import anarchy.minesky.core.command.GamemodeCommand;
+import anarchy.minesky.core.command.GiveItemCommand;
 import anarchy.minesky.core.command.HealCommand;
 import anarchy.minesky.core.command.ItemNameCommand;
 import anarchy.minesky.core.command.LoreCommand;
@@ -11,6 +13,7 @@ import anarchy.minesky.core.command.NvCommand;
 import anarchy.minesky.core.command.PingCommand;
 import anarchy.minesky.core.command.ReplyCommand;
 import anarchy.minesky.core.command.TellCommand;
+import anarchy.minesky.core.command.TeleportAdminCommand;
 import anarchy.minesky.core.command.TempoJogoCommand;
 import anarchy.minesky.core.command.TpAutoCommand;
 import anarchy.minesky.core.command.TpaAcceptCommand;
@@ -24,6 +27,8 @@ import anarchy.minesky.core.command.SetHomeCommand;
 import anarchy.minesky.core.command.SetWarpCommand;
 import anarchy.minesky.core.command.SpawnCommand;
 import anarchy.minesky.core.command.AmigoCommand;
+import anarchy.minesky.core.command.ConviteCommand;
+import anarchy.minesky.core.command.ReferralAdminHandler;
 import anarchy.minesky.core.command.WarpCommand;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.dialogapi.DialogManager;
@@ -70,6 +75,19 @@ import anarchy.minesky.core.impl.guard.fog.FogListener;
 import anarchy.minesky.core.impl.guard.fog.FogOfWarManager;
 import anarchy.minesky.core.impl.guard.fog.FogSettings;
 import anarchy.minesky.core.impl.tab.TabSettings;
+import anarchy.minesky.core.impl.referral.IpHistoryRepository;
+import anarchy.minesky.core.impl.referral.NoOpReferralNetworkVerifier;
+import anarchy.minesky.core.impl.referral.PlayerIdentityRepository;
+import anarchy.minesky.core.impl.referral.ReferralAntiAltChecker;
+import anarchy.minesky.core.impl.referral.ReferralAuditRepository;
+import anarchy.minesky.core.impl.referral.ReferralManager;
+import anarchy.minesky.core.impl.referral.ReferralPayoutService;
+import anarchy.minesky.core.impl.referral.ReferralQualificationTracker;
+import anarchy.minesky.core.impl.referral.ReferralRepository;
+import anarchy.minesky.core.impl.referral.ReferralSettings;
+import anarchy.minesky.core.impl.referral.economy.AnarchyEconomyFragmentProvider;
+import anarchy.minesky.core.listener.ReferralListener;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -114,6 +132,11 @@ public final class AnarchyCore extends JavaPlugin {
     private KitsCommandHandler kitsCommandHandler;
     private MaterialTranslationsImpl materialTranslations;
     private TabSettings tabSettings;
+    private ReferralSettings referralSettings;
+    private ReferralManager referralManager;
+    private ReferralAdminHandler referralAdminHandler;
+    private ReferralQualificationTracker referralQualificationTracker;
+    private ScheduledTask referralTickTask;
 
     @Override
     public void onEnable() {
@@ -198,6 +221,40 @@ public final class AnarchyCore extends JavaPlugin {
 
         this.tabSettings = new TabSettings(this);
 
+        this.referralSettings = new ReferralSettings(this);
+        ReferralRepository referralRepository = new ReferralRepository(databaseManager);
+        ReferralAuditRepository referralAuditRepository = new ReferralAuditRepository(databaseManager);
+        IpHistoryRepository ipHistoryRepository = new IpHistoryRepository(databaseManager, referralSettings);
+        PlayerIdentityRepository playerIdentityRepository = new PlayerIdentityRepository(databaseManager);
+        ReferralAntiAltChecker referralAntiAltChecker = new ReferralAntiAltChecker(
+                referralSettings,
+                referralRepository,
+                ipHistoryRepository,
+                playerIdentityRepository,
+                new NoOpReferralNetworkVerifier());
+        this.referralQualificationTracker = new ReferralQualificationTracker(this, referralSettings, referralRepository);
+        AnarchyEconomyFragmentProvider fragmentEconomy = new AnarchyEconomyFragmentProvider(this);
+        ReferralPayoutService referralPayoutService = new ReferralPayoutService(
+                this, referralSettings, referralRepository, referralAuditRepository, fragmentEconomy);
+        this.referralManager = new ReferralManager(
+                this,
+                referralSettings,
+                referralRepository,
+                referralAuditRepository,
+                referralAntiAltChecker,
+                referralQualificationTracker,
+                referralPayoutService,
+                playerIdentityRepository,
+                ipHistoryRepository,
+                messagesManager,
+                feedbackManager);
+        this.referralAdminHandler = new ReferralAdminHandler(referralManager);
+        fragmentEconomy.start(referralManager::processQualifiedPayouts);
+        getServer().getPluginManager().registerEvents(
+                new ReferralListener(referralManager, referralQualificationTracker), this);
+        this.referralTickTask = getServer().getGlobalRegionScheduler().runAtFixedRate(
+                this, task -> referralManager.tickGlobal(), 40L, 20L);
+
         this.guardSettings = new GuardSettings(this);
         GuardRepository guardRepository = new GuardRepository(this, databaseManager, guardSettings);
         GuardPlayerSnapshot guardSnapshots = new GuardPlayerSnapshot();
@@ -254,6 +311,22 @@ public final class AnarchyCore extends JavaPlugin {
         HealCommand healCommand = new HealCommand(messagesManager, feedbackManager);
         bind("heal", "Restaura sua vida ou a de outro jogador", List.of(), healCommand, healCommand);
 
+        TeleportAdminCommand tpCommand = new TeleportAdminCommand(this, messagesManager, feedbackManager, false);
+        bind("tp", "Teleporta até um jogador, outro jogador ou coordenadas", List.of("teleport"), tpCommand, tpCommand);
+
+        TeleportAdminCommand tpHereCommand = new TeleportAdminCommand(this, messagesManager, feedbackManager, true);
+        bind("tphere", "Puxa um jogador até você", List.of("tph"), tpHereCommand, tpHereCommand);
+
+        GiveItemCommand giveItemCommand = new GiveItemCommand(messagesManager, feedbackManager);
+        bind("i", "Dá um item para você", List.of("item"), giveItemCommand, giveItemCommand);
+
+        GamemodeCommand gamemodeCommand = new GamemodeCommand(this, messagesManager, feedbackManager);
+        bind("gm", "Altera o modo de jogo", List.of(), gamemodeCommand, gamemodeCommand);
+        bind("gmc", "Atalho de gamemode criativo", List.of(), gamemodeCommand, gamemodeCommand);
+        bind("gms", "Atalho de gamemode sobrevivência", List.of(), gamemodeCommand, gamemodeCommand);
+        bind("gma", "Atalho de gamemode aventura", List.of(), gamemodeCommand, gamemodeCommand);
+        bind("gmsp", "Atalho de gamemode espectador", List.of(), gamemodeCommand, gamemodeCommand);
+
         NvCommand nvCommand = new NvCommand(messagesManager, feedbackManager);
         bind("nv", "Ativa ou desativa visão noturna", List.of(), nvCommand, nvCommand);
 
@@ -272,7 +345,8 @@ public final class AnarchyCore extends JavaPlugin {
         bind("r", "Responde a última mensagem privada", List.of("responder"), new ReplyCommand(messagesManager, privateMessageService), null);
 
         AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(
-                this, messagesManager, feedbackManager, guardCommandHandler, kitsCommandHandler);
+                this, messagesManager, feedbackManager, guardCommandHandler, kitsCommandHandler,
+                referralAdminHandler);
         bind("anarchycore", "Comandos administrativos do AnarchyCore", List.of("acore", "minesky"), coreCommand, coreCommand);
 
         KitsCommand kitsCommand = new KitsCommand(messagesManager, kitManager);
@@ -322,6 +396,9 @@ public final class AnarchyCore extends JavaPlugin {
 
         AmigoCommand amigoCommand = new AmigoCommand(messagesManager, feedbackManager, friendsManager);
         bind("amigo", "Lista de amigos (menu) ou adicionar/remover/listar", List.of("amigos", "friends"), amigoCommand, amigoCommand);
+
+        ConviteCommand conviteCommand = new ConviteCommand(messagesManager, feedbackManager, referralManager);
+        bind("convite", "Código de convite e indicações", List.of("indicar", "referral"), conviteCommand, conviteCommand);
     }
 
     private void bind(
@@ -378,6 +455,12 @@ public final class AnarchyCore extends JavaPlugin {
                 dialogManager.reloadMaterialSearch();
             }
         }
+        if (referralSettings != null) {
+            referralSettings.reload();
+        }
+        if (referralManager != null) {
+            referralManager.reload();
+        }
     }
 
     public GuardManager guardManager() {
@@ -394,6 +477,17 @@ public final class AnarchyCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (referralTickTask != null) {
+            referralTickTask.cancel();
+            referralTickTask = null;
+        }
+        if (referralManager != null) {
+            referralManager.shutdown();
+            referralManager = null;
+        }
+        referralQualificationTracker = null;
+        referralAdminHandler = null;
+        referralSettings = null;
         if (fogOfWar != null) {
             fogOfWar.stop();
             fogOfWar = null;

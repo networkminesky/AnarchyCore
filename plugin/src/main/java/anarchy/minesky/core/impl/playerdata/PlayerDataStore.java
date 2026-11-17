@@ -136,10 +136,12 @@ final class PlayerDataStore {
             PlayerDataJson.putNested(merged, entry.getKey(), entry.getValue());
         }
         String json = PlayerDataJson.toJson(merged);
+        // MariaDB trata JSON como LONGTEXT e não aceita CAST(? AS JSON) (erro de sintaxe no upsert).
+        // MySQL valida o texto ao gravar na coluna JSON; não precisa de cast.
         try (PreparedStatement ps = connection.prepareStatement("""
                 INSERT INTO ac_player_data (uuid, latest_nickname, data)
-                VALUES (?, NULL, CAST(? AS JSON))
-                ON DUPLICATE KEY UPDATE data = CAST(? AS JSON)
+                VALUES (?, NULL, ?)
+                ON DUPLICATE KEY UPDATE data = ?
                 """)) {
             ps.setString(1, uuid.toString());
             ps.setString(2, json);

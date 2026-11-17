@@ -67,6 +67,10 @@ public final class DatabaseManager {
         }
     }
 
+    public Plugin plugin() {
+        return plugin;
+    }
+
     public boolean isActive() {
         return dataSource != null && !dataSource.isClosed();
     }
@@ -113,19 +117,44 @@ public final class DatabaseManager {
     }
 
     public <T> void queryAsync(SqlFunction<T> function, AsyncCallback<T> callback) {
-        if (!isActive()) {
-            callback.complete(null, new SQLException("Database inactive"));
-            return;
-        }
-        runAsync(() -> {
-            try {
-                T value = querySyncThrowing(function);
+        submit(function).whenComplete((value, error) -> {
+            if (error == null) {
                 callback.complete(value, null);
-            } catch (SQLException e) {
-                plugin.getLogger().severe("Erro SQL async: " + e.getMessage());
-                callback.complete(null, e);
+                return;
             }
+            Throwable cause = error instanceof java.util.concurrent.CompletionException && error.getCause() != null
+                    ? error.getCause()
+                    : error;
+            SQLException sql = cause instanceof SQLException sqlException
+                    ? sqlException
+                    : new SQLException(cause.getMessage(), cause);
+            callback.complete(null, sql);
         });
+    }
+
+    public <T> java.util.concurrent.CompletableFuture<T> submit(SqlFunction<T> function) {
+        java.util.concurrent.CompletableFuture<T> future = new java.util.concurrent.CompletableFuture<>();
+        if (!isActive() || !acceptingAsync || executor == null) {
+            future.completeExceptionally(new SQLException("Database inactive"));
+            return future;
+        }
+        try {
+            executor.execute(() -> {
+                if (!acceptingAsync || !isActive()) {
+                    future.completeExceptionally(new SQLException("Database inactive"));
+                    return;
+                }
+                try {
+                    future.complete(querySyncThrowing(function));
+                } catch (Exception e) {
+                    plugin.getLogger().severe("Erro SQL async: " + e.getMessage());
+                    future.completeExceptionally(e);
+                }
+            });
+        } catch (RuntimeException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     public void withConnection(Consumer<Connection> consumer) {
@@ -245,6 +274,77 @@ public final class DatabaseManager {
                           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                           PRIMARY KEY (from_uuid, to_uuid),
                           INDEX idx_friend_req_to (to_uuid)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_referral_codes (
+                          player_uuid CHAR(36) NOT NULL PRIMARY KEY,
+                          code VARCHAR(16) NOT NULL,
+                          created_at BIGINT NOT NULL,
+                          blocked TINYINT(1) NOT NULL DEFAULT 0,
+                          UNIQUE KEY uk_referral_code (code)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_referral_redemptions (
+                          id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                          invitee_uuid CHAR(36) NOT NULL,
+                          referrer_uuid CHAR(36) NOT NULL,
+                          code VARCHAR(16) NOT NULL,
+                          status VARCHAR(32) NOT NULL,
+                          created_at BIGINT NOT NULL,
+                          expires_at BIGINT NOT NULL,
+                          qualified_at BIGINT NULL,
+                          rewarded_at BIGINT NULL,
+                          payout_idempotency_key VARCHAR(64) NULL,
+                          active_playtime_ms BIGINT NOT NULL DEFAULT 0,
+                          distance_traveled DOUBLE NOT NULL DEFAULT 0,
+                          blocks_mined INT NOT NULL DEFAULT 0,
+                          blocks_placed INT NOT NULL DEFAULT 0,
+                          UNIQUE KEY uk_referral_invitee (invitee_uuid),
+                          INDEX idx_referral_referrer_status (referrer_uuid, status),
+                          INDEX idx_referral_status_expires (status, expires_at),
+                          INDEX idx_referral_payout_pending (status, qualified_at)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_referral_audit (
+                          id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                          referral_id BIGINT NULL,
+                          player_uuid CHAR(36) NOT NULL,
+                          event_type VARCHAR(64) NOT NULL,
+                          reason VARCHAR(64) NULL,
+                          detail TEXT NULL,
+                          created_at BIGINT NOT NULL,
+                          INDEX idx_referral_audit_player_time (player_uuid, created_at DESC),
+                          INDEX idx_referral_audit_referral (referral_id, created_at DESC)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_referral_blocks (
+                          player_uuid CHAR(36) NOT NULL PRIMARY KEY,
+                          blocked_at BIGINT NOT NULL,
+                          reason VARCHAR(128) NULL
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_ip_history (
+                          id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                          player_uuid CHAR(36) NOT NULL,
+                          ip_address VARCHAR(45) NOT NULL,
+                          subnet_key VARCHAR(64) NOT NULL,
+                          first_seen BIGINT NOT NULL,
+                          last_seen BIGINT NOT NULL,
+                          UNIQUE KEY uk_player_ip (player_uuid, ip_address),
+                          INDEX idx_ip_subnet (subnet_key, player_uuid),
+                          INDEX idx_ip_address (ip_address)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_identity (
+                          player_uuid CHAR(36) NOT NULL PRIMARY KEY,
+                          first_join_at BIGINT NOT NULL,
+                          client_brand VARCHAR(128) NOT NULL DEFAULT ''
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
             } catch (SQLException e) {

@@ -9,6 +9,15 @@ repositories {
     maven { url = uri("https://jitpack.io") }
 
     maven("https://repo.codemc.org/repository/maven-public/")
+
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/networkminesky/AnarchyEconomy")
+        credentials {
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR") ?: "SEU_USUARIO"
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN") ?: "ghp_SEU_TOKEN"
+        }
+    }
 }
 
 java {
@@ -30,6 +39,7 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.12.3")
     compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
     compileOnly("com.github.networkminesky:AnarchyTags:1.0.0")
+    compileOnly("anarchy.minesky:anarchyeconomy-api:1.0.1")
 
     compileOnly("net.skinsrestorer:skinsrestorer-api:15.12.6")
 
@@ -60,6 +70,7 @@ tasks {
                     file.name.contains("HikariCP", ignoreCase = true)
                             || file.name.contains("mariadb", ignoreCase = true)
                             || file.name.contains("gson", ignoreCase = true)
+                            || file.name.contains("anarchyeconomy", ignoreCase = true)
                 }
                 .map { file -> if (file.isDirectory) file else zipTree(file) },
         )
