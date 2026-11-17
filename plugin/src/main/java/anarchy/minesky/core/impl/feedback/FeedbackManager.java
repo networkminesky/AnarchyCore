@@ -121,7 +121,7 @@ public final class FeedbackManager implements FeedbackAPI {
             return;
         }
         FeedbackPlayerState state = states.get(player.getUniqueId());
-        player.getScheduler().run(plugin, task -> {
+        dispatchOnPlayer(player, () -> {
             if (state != null) {
                 synchronized (state) {
                     state.clearAll();
@@ -130,7 +130,7 @@ public final class FeedbackManager implements FeedbackAPI {
             if (player.isOnline()) {
                 player.sendActionBar(Component.empty());
             }
-        }, null);
+        });
     }
 
     public void setPersistentLowOverlay(Player player, Component message) {
@@ -138,15 +138,12 @@ public final class FeedbackManager implements FeedbackAPI {
             return;
         }
         FeedbackPlayerState state = states.computeIfAbsent(player.getUniqueId(), id -> new FeedbackPlayerState());
-        player.getScheduler().run(plugin, task -> {
-            if (!player.isOnline() || !plugin.isEnabled()) {
-                return;
-            }
+        dispatchOnPlayer(player, () -> {
             synchronized (state) {
                 state.setPersistentLowOverlay(message);
             }
             refreshPersistentLowOverlay(player, state);
-        }, null);
+        });
     }
 
     public void clearPersistentLowOverlay(Player player) {
@@ -157,15 +154,12 @@ public final class FeedbackManager implements FeedbackAPI {
         if (state == null) {
             return;
         }
-        player.getScheduler().run(plugin, task -> {
-            if (!player.isOnline() || !plugin.isEnabled()) {
-                return;
-            }
+        dispatchOnPlayer(player, () -> {
             synchronized (state) {
                 state.clearPersistentLowOverlay();
             }
             refreshPersistentLowOverlay(player, state);
-        }, null);
+        });
     }
 
     @Override
@@ -187,15 +181,12 @@ public final class FeedbackManager implements FeedbackAPI {
         FeedbackPlayerState.QueuedMessage queued =
                 new FeedbackPlayerState.QueuedMessage(parts, priority, chatMirror, uiSound);
 
-        player.getScheduler().run(plugin, task -> {
-            if (!player.isOnline() || !plugin.isEnabled()) {
-                return;
-            }
+        dispatchOnPlayer(player, () -> {
             synchronized (state) {
                 state.enqueue(queued, priority);
             }
             pump(player, state);
-        }, null);
+        });
     }
 
     private void pump(Player player, FeedbackPlayerState state) {
@@ -203,9 +194,11 @@ public final class FeedbackManager implements FeedbackAPI {
             return;
         }
 
+        boolean recurse;
         int generation;
         synchronized (state) {
             generation = state.generation();
+            recurse = false;
 
             if (state.hasActiveParts()) {
                 Component part = state.currentPart();
@@ -215,11 +208,20 @@ public final class FeedbackManager implements FeedbackAPI {
                     state.finishActive();
                 }
                 player.sendActionBar(part);
-                long delay = ticksPerPart;
-                if (!moreParts && state.hasQueued()) {
-                    delay = ticksPerPart + ticksBetweenMessages;
+
+                if (moreParts) {
+                    schedulePump(player, state, generation, ticksPerPart);
+                    return;
                 }
-                schedulePump(player, state, generation, delay);
+                if (state.hasQueued()) {
+                    if (ticksBetweenMessages > 0) {
+                        schedulePump(player, state, generation, ticksBetweenMessages);
+                        return;
+                    }
+                    recurse = true;
+                    return;
+                }
+                refreshPersistentLowOverlay(player, state);
                 return;
             }
 
@@ -233,8 +235,25 @@ public final class FeedbackManager implements FeedbackAPI {
                 player.sendMessage(next.chatMirror());
             }
             state.beginActive(next.parts());
+            recurse = true;
         }
-        pump(player, state);
+        if (recurse) {
+            pump(player, state);
+        }
+    }
+
+    /**
+     * Executa na região do jogador sem esperar tick extra quando o chamador já está na região correta (Folia).
+     */
+    private void dispatchOnPlayer(Player player, Runnable action) {
+        if (!player.isOnline() || !plugin.isEnabled()) {
+            return;
+        }
+        if (Bukkit.isOwnedByCurrentRegion(player)) {
+            action.run();
+            return;
+        }
+        player.getScheduler().run(plugin, task -> action.run(), null);
     }
 
     private void playUiSound(Player player, FeedbackPriority priority, UiSoundMode mode) {

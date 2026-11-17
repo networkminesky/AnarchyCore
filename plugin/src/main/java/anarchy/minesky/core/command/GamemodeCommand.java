@@ -5,6 +5,7 @@ import anarchy.minesky.core.api.feedback.UiSoundMode;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.feedback.FeedbackManager;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -119,7 +120,7 @@ public final class GamemodeCommand implements CommandExecutor, TabCompleter {
     }
 
     private void apply(CommandSender sender, Player target, GameMode mode) {
-        target.getScheduler().run(plugin, task -> {
+        Runnable action = () -> {
             if (!target.isOnline()) {
                 missing(sender, target.getName());
                 return;
@@ -138,7 +139,12 @@ public final class GamemodeCommand implements CommandExecutor, TabCompleter {
                     FeedbackPriority.NORMAL,
                     true,
                     UiSoundMode.SUCCESS);
-        }, null);
+        };
+        if (Bukkit.isOwnedByCurrentRegion(target)) {
+            action.run();
+            return;
+        }
+        target.getScheduler().run(plugin, task -> action.run(), null);
     }
 
     @Override

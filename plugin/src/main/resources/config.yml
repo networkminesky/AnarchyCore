@@ -21,10 +21,10 @@ debug: false
 feedback:
   # Caracteres visíveis por "slide" no action bar
   max-chars-per-part: 64
-  # Tempo (ticks) que cada parte fica na tela
+  # Tempo (ticks) entre partes de uma mesma mensagem longa (slide). Mensagens curtas/únicas não esperam.
   ticks-per-part: 40
-  # Pausa entre mensagens completas na fila
-  ticks-between-messages: 5
+  # Pausa opcional entre mensagens distintas na fila (0 = imediato). Não afeta slides.
+  ticks-between-messages: 0
   # Envia a mesma mensagem no chat do jogador ao exibir no action bar
   mirror-to-chat: true
 
