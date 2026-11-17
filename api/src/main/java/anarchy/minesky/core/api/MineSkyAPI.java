@@ -9,6 +9,8 @@ import anarchy.minesky.core.api.sounds.UiSoundsAPI;
 import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 
 public final class MineSkyAPI {
 
@@ -84,5 +86,26 @@ public final class MineSkyAPI {
             return "";
         }
         return material.name().toLowerCase().replace('_', ' ');
+    }
+
+    /**
+     * Nome do tipo de entidade em português (pt_br.json). Fallback: nome em inglês formatado.
+     */
+    public static String getPortugueseName(EntityType entityType) {
+        MaterialTranslationsAPI api = materialTranslations();
+        if (api != null) {
+            return api.getPortugueseName(entityType);
+        }
+        if (entityType == null) {
+            return "";
+        }
+        return entityType.name().toLowerCase().replace('_', ' ');
+    }
+
+    /**
+     * Nome da entidade em português (pt_br.json). Fallback: nome em inglês formatado.
+     */
+    public static String getPortugueseName(Entity entity) {
+        return entity == null ? "" : getPortugueseName(entity.getType());
     }
 }

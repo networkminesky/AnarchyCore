@@ -20,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,6 +56,16 @@ public final class WarpManager {
 
     public void reloadStorage() {
         storage.load();
+    }
+
+    /**
+     * Localização da warp, sem checagem de permissão nem contagem regressiva.
+     */
+    public Optional<Location> warpLocation(String warpId) {
+        String id = WarpStorage.normalizeId(warpId);
+        return storage.get(id)
+                .map(WarpDefinition::toLocation)
+                .filter(location -> location != null);
     }
 
     public void handleQuit(UUID playerId) {

@@ -2,10 +2,12 @@ package anarchy.minesky.core.api.text;
 
 import anarchy.minesky.core.api.ServiceProviders;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Nomes de {@link Material} em português (pt_BR) a partir de {@code lang/pt_br.json}.
+ * Nomes de {@link Material} e {@link EntityType} em português (pt_BR) a partir de {@code lang/pt_br.json}.
  */
 public interface MaterialTranslationsAPI {
 
@@ -21,8 +23,22 @@ public interface MaterialTranslationsAPI {
      */
     String getPortugueseName(Material material);
 
+    /**
+     * Nome da entidade em português; se não houver tradução, retorna o nome em inglês formatado
+     * ({@code cave_spider → cave spider}).
+     */
+    String getPortugueseName(EntityType entityType);
+
+    /** {@link Entity#getType()}. */
+    default String getPortugueseName(Entity entity) {
+        return entity == null ? "" : getPortugueseName(entity.getType());
+    }
+
     /** Nome derivado do enum (underscores para espaços, minúsculas). */
     String getEnglishName(Material material);
+
+    /** Nome derivado do enum (underscores para espaços, minúsculas). */
+    String getEnglishName(EntityType entityType);
 
     /** Recarrega o arquivo de traduções do disco/recursos. */
     void reload();

@@ -1,6 +1,7 @@
 package anarchy.minesky.core.listener;
 
 import anarchy.minesky.core.impl.warps.WarpManager;
+import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -13,6 +14,14 @@ public final class WarpListener implements Listener {
 
     public WarpListener(WarpManager warpManager) {
         this.warpManager = warpManager;
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onFirstJoinSpawn(AsyncPlayerSpawnLocationEvent event) {
+        if (!event.isNewPlayer()) {
+            return;
+        }
+        warpManager.warpLocation("spawn").ifPresent(event::setSpawnLocation);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

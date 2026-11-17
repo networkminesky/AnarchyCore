@@ -28,7 +28,11 @@ final class FeedbackTextSplitter {
                 chunk = remaining.substring(0, Math.min(remaining.length(), maxVisibleChars + 8));
             }
             chunks.add(chunk);
-            remaining = remaining.substring(chunk.length());
+            if (chunk.length() >= remaining.length()) {
+                break;
+            }
+            String tail = remaining.substring(chunk.length());
+            remaining = legacyStateAtEnd(chunk).toPrefix() + tail;
         }
 
         return chunks.stream().map(DialogComponentUtils::parse).toList();
@@ -85,5 +89,131 @@ final class FeedbackTextSplitter {
         }
 
         return chunk.toString();
+    }
+
+    private static LegacyFormatState legacyStateAtEnd(String legacy) {
+        LegacyFormatState state = new LegacyFormatState();
+        int i = 0;
+        while (i < legacy.length()) {
+            if (legacy.charAt(i) == '&' && i + 1 < legacy.length()) {
+                if (legacy.charAt(i + 1) == 'x' && i + 13 < legacy.length() && isLegacyHex(legacy, i, '&')) {
+                    state.applyColor(legacy.substring(i, i + 14));
+                    i += 14;
+                    continue;
+                }
+                char code = legacy.charAt(i + 1);
+                if (isColorCode(code)) {
+                    state.applyColor("&" + code);
+                } else {
+                    state.applyDecoration(code);
+                }
+                i += 2;
+                continue;
+            }
+            if (legacy.charAt(i) == '§' && i + 1 < legacy.length()) {
+                if (legacy.charAt(i + 1) == 'x' && i + 13 < legacy.length() && isLegacyHex(legacy, i, '§')) {
+                    state.applyColor(sectionHexToAmpersand(legacy.substring(i, i + 14)));
+                    i += 14;
+                    continue;
+                }
+                char code = legacy.charAt(i + 1);
+                if (isColorCode(code)) {
+                    state.applyColor("&" + code);
+                } else {
+                    state.applyDecoration(code);
+                }
+                i += 2;
+                continue;
+            }
+            i++;
+        }
+        return state;
+    }
+
+    private static boolean isColorCode(char code) {
+        char lower = Character.toLowerCase(code);
+        return (lower >= '0' && lower <= '9') || (lower >= 'a' && lower <= 'f');
+    }
+
+    private static boolean isLegacyHex(String input, int index, char indicator) {
+        if (index + 13 >= input.length() || input.charAt(index + 1) != 'x') {
+            return false;
+        }
+        for (int i = index + 2; i <= index + 13; i += 2) {
+            if (input.charAt(i) != indicator) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String sectionHexToAmpersand(String sectionHex) {
+        StringBuilder out = new StringBuilder("&x");
+        for (int i = 3; i < sectionHex.length(); i += 2) {
+            out.append('&').append(sectionHex.charAt(i + 1));
+        }
+        return out.toString();
+    }
+
+    private static final class LegacyFormatState {
+        private String colorCodes = "";
+        private boolean obfuscated;
+        private boolean bold;
+        private boolean italic;
+        private boolean underline;
+        private boolean strikethrough;
+
+        void applyColor(String codes) {
+            colorCodes = codes;
+            obfuscated = false;
+            bold = false;
+            italic = false;
+            underline = false;
+            strikethrough = false;
+        }
+
+        void applyDecoration(char code) {
+            switch (Character.toLowerCase(code)) {
+                case 'k' -> obfuscated = true;
+                case 'l' -> bold = true;
+                case 'm' -> strikethrough = true;
+                case 'n' -> underline = true;
+                case 'o' -> italic = true;
+                case 'r' -> reset();
+                default -> { }
+            }
+        }
+
+        void reset() {
+            colorCodes = "";
+            obfuscated = false;
+            bold = false;
+            italic = false;
+            underline = false;
+            strikethrough = false;
+        }
+
+        String toPrefix() {
+            if (colorCodes.isEmpty() && !obfuscated && !bold && !italic && !underline && !strikethrough) {
+                return "";
+            }
+            StringBuilder out = new StringBuilder(colorCodes);
+            if (obfuscated) {
+                out.append("&k");
+            }
+            if (bold) {
+                out.append("&l");
+            }
+            if (strikethrough) {
+                out.append("&m");
+            }
+            if (underline) {
+                out.append("&n");
+            }
+            if (italic) {
+                out.append("&o");
+            }
+            return out.toString();
+        }
     }
 }

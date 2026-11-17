@@ -4,6 +4,7 @@ import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 
@@ -23,7 +24,8 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
 
     private final Plugin plugin;
     private Map<String, String> translationTable = Map.of();
-    private final Map<Material, String> portugueseCache = new EnumMap<>(Material.class);
+    private final Map<Material, String> materialPortugueseCache = new EnumMap<>(Material.class);
+    private final Map<EntityType, String> entityPortugueseCache = new EnumMap<>(EntityType.class);
 
     public MaterialTranslationsImpl(Plugin plugin) {
         this.plugin = plugin;
@@ -41,7 +43,8 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
 
     @Override
     public void reload() {
-        portugueseCache.clear();
+        materialPortugueseCache.clear();
+        entityPortugueseCache.clear();
         translationTable = loadTranslations(plugin);
     }
 
@@ -50,7 +53,15 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
         if (material == null || material.isAir()) {
             return "";
         }
-        return portugueseCache.computeIfAbsent(material, this::resolvePortugueseName);
+        return materialPortugueseCache.computeIfAbsent(material, this::resolveMaterialPortugueseName);
+    }
+
+    @Override
+    public String getPortugueseName(EntityType entityType) {
+        if (entityType == null) {
+            return "";
+        }
+        return entityPortugueseCache.computeIfAbsent(entityType, this::resolveEntityPortugueseName);
     }
 
     @Override
@@ -58,7 +69,12 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
         return formatEnglishName(material);
     }
 
-    private String resolvePortugueseName(Material material) {
+    @Override
+    public String getEnglishName(EntityType entityType) {
+        return formatEnglishName(entityType);
+    }
+
+    private String resolveMaterialPortugueseName(Material material) {
         if (material.isLegacy()) {
             return formatEnglishName(material);
         }
@@ -92,11 +108,46 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
         return formatEnglishName(material);
     }
 
+    private String resolveEntityPortugueseName(EntityType entityType) {
+        if (!translationTable.isEmpty()) {
+            String key;
+            try {
+                key = entityType.getKey().getKey();
+            } catch (Throwable ignored) {
+                key = entityType.name().toLowerCase(Locale.ROOT);
+            }
+            String name = null;
+
+            try {
+                name = translationTable.get(entityType.translationKey());
+            } catch (Throwable ignored) {
+            }
+
+            if (name == null || name.isBlank()) {
+                name = translationTable.get("entity.minecraft." + key);
+            }
+            if (name == null || name.isBlank()) {
+                name = translationTable.get(key);
+            }
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
+        }
+        return formatEnglishName(entityType);
+    }
+
     public static String formatEnglishName(Material material) {
         if (material == null) {
             return "";
         }
         return material.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+    }
+
+    public static String formatEnglishName(EntityType entityType) {
+        if (entityType == null) {
+            return "";
+        }
+        return entityType.name().toLowerCase(Locale.ROOT).replace('_', ' ');
     }
 
     static Map<String, String> loadTranslations(Plugin plugin) {
