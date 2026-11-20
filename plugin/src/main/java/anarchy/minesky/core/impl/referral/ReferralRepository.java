@@ -9,7 +9,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public final class ReferralRepository {
@@ -48,6 +50,79 @@ public final class ReferralRepository {
             return null;
         }
         return database.querySync(connection -> selectCodeByPlayer(connection, playerUuid));
+    }
+
+    public enum AssignResult {
+        APPLIED,
+        UNCHANGED,
+        TAKEN
+    }
+
+    public record CodeState(String code, long changedAt, int changeCount) {
+    }
+
+    public CodeState codeState(UUID playerUuid) {
+        if (!isActive() || playerUuid == null) {
+            return null;
+        }
+        return database.querySync(connection -> selectCodeState(connection, playerUuid));
+    }
+
+    /**
+     * Grava o código já normalizado. Duplicata (inclusive caixa diferente) vira {@link AssignResult#TAKEN}
+     * sem propagar a SQLException da constraint {@code UNIQUE}.
+     * Indicações antigas continuam em {@code referrer_uuid}; esta tabela não é chave estrangeira delas.
+     */
+    public AssignResult assignCustomCode(UUID playerUuid, String normalizedCode, long now) {
+        if (!isActive() || playerUuid == null || normalizedCode == null || normalizedCode.isBlank()) {
+            return null;
+        }
+        String code = normalizedCode.trim().toUpperCase(Locale.ROOT);
+        return database.querySync(connection -> {
+            UUID owner = selectCodeOwner(connection, code);
+            if (owner != null && !owner.equals(playerUuid)) {
+                return AssignResult.TAKEN;
+            }
+            CodeState current = selectCodeState(connection, playerUuid);
+            if (current == null) {
+                return insertCustomCode(connection, playerUuid, code, now);
+            }
+            if (current.code() != null && current.code().equalsIgnoreCase(code)) {
+                return AssignResult.UNCHANGED;
+            }
+            return updateCustomCode(connection, playerUuid, code, now);
+        });
+    }
+
+    public ReferralWelcomeGate loadWelcomeGate(UUID playerUuid) {
+        if (!isActive() || playerUuid == null) {
+            return null;
+        }
+        return database.querySync(connection -> selectWelcomeGate(connection, playerUuid));
+    }
+
+    public CompletableFuture<ReferralWelcomeGate> loadWelcomeGateAsync(UUID playerUuid) {
+        return database.submit(connection -> selectWelcomeGate(connection, playerUuid));
+    }
+
+    public void markWelcomeSeen(UUID playerUuid) {
+        if (!isActive() || playerUuid == null) {
+            return;
+        }
+        database.withConnection(connection -> {
+            try {
+                upsertWelcomeSeen(connection, playerUuid);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public CompletableFuture<Void> markWelcomeSeenAsync(UUID playerUuid) {
+        return database.submit(connection -> {
+            upsertWelcomeSeen(connection, playerUuid);
+            return null;
+        });
     }
 
     public UUID getReferrerByCode(String code) {
@@ -488,6 +563,112 @@ public final class ReferralRepository {
         return updated != null ? updated : 0;
     }
 
+    private static CodeState selectCodeState(Connection connection, UUID playerUuid) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("""
+                SELECT code, code_changed_at, code_change_count
+                FROM ac_referral_codes WHERE player_uuid = ?
+                """)) {
+            ps.setString(1, playerUuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                return new CodeState(rs.getString("code"), rs.getLong("code_changed_at"), rs.getInt("code_change_count"));
+            }
+        }
+    }
+
+    private static UUID selectCodeOwner(Connection connection, String code) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT player_uuid FROM ac_referral_codes WHERE UPPER(code) = ?")) {
+            ps.setString(1, code.toUpperCase(Locale.ROOT));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                return UUID.fromString(rs.getString("player_uuid"));
+            }
+        }
+    }
+
+    private static AssignResult insertCustomCode(Connection connection, UUID playerUuid, String code, long now)
+            throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("""
+                INSERT INTO ac_referral_codes
+                  (player_uuid, code, created_at, blocked, code_changed_at, code_change_count)
+                VALUES (?, ?, ?, 0, ?, 1)
+                """)) {
+            ps.setString(1, playerUuid.toString());
+            ps.setString(2, code);
+            ps.setLong(3, now);
+            ps.setLong(4, now);
+            return ps.executeUpdate() == 1 ? AssignResult.APPLIED : null;
+        } catch (SQLException e) {
+            if (isDuplicateCode(e)) {
+                return AssignResult.TAKEN;
+            }
+            throw e;
+        }
+    }
+
+    private static AssignResult updateCustomCode(Connection connection, UUID playerUuid, String code, long now)
+            throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement("""
+                UPDATE ac_referral_codes
+                SET code = ?, code_changed_at = ?, code_change_count = code_change_count + 1
+                WHERE player_uuid = ?
+                """)) {
+            ps.setString(1, code);
+            ps.setLong(2, now);
+            ps.setString(3, playerUuid.toString());
+            if (ps.executeUpdate() == 1) {
+                return AssignResult.APPLIED;
+            }
+            return null;
+        } catch (SQLException e) {
+            if (isDuplicateCode(e)) {
+                return AssignResult.TAKEN;
+            }
+            throw e;
+        }
+    }
+
+    private static ReferralWelcomeGate selectWelcomeGate(Connection connection, UUID playerUuid) throws SQLException {
+        boolean seen = false;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT referral_dialog_seen FROM ac_player_identity WHERE player_uuid = ?")) {
+            ps.setString(1, playerUuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    seen = rs.getBoolean("referral_dialog_seen");
+                }
+            }
+        }
+        boolean redeemed = selectByInvitee(connection, playerUuid) != null;
+        boolean blocked = false;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT 1 FROM ac_referral_blocks WHERE player_uuid = ? LIMIT 1")) {
+            ps.setString(1, playerUuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                blocked = rs.next();
+            }
+        }
+        return new ReferralWelcomeGate(seen, redeemed, blocked);
+    }
+
+    private static void upsertWelcomeSeen(Connection connection, UUID playerUuid) throws SQLException {
+        long now = System.currentTimeMillis();
+        try (PreparedStatement ps = connection.prepareStatement("""
+                INSERT INTO ac_player_identity (player_uuid, first_join_at, client_brand, referral_dialog_seen)
+                VALUES (?, ?, '', 1)
+                ON DUPLICATE KEY UPDATE referral_dialog_seen = 1
+                """)) {
+            ps.setString(1, playerUuid.toString());
+            ps.setLong(2, now);
+            ps.executeUpdate();
+        }
+    }
+
     private static String selectCodeByPlayer(Connection connection, UUID playerUuid) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT code FROM ac_referral_codes WHERE player_uuid = ?")) {
@@ -518,9 +699,9 @@ public final class ReferralRepository {
     private static UUID selectReferrerByCode(Connection connection, String code) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement("""
                 SELECT player_uuid FROM ac_referral_codes
-                WHERE code = ? AND blocked = 0
+                WHERE UPPER(code) = ? AND blocked = 0
                 """)) {
-            ps.setString(1, code.toUpperCase());
+            ps.setString(1, code.toUpperCase(Locale.ROOT));
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return null;
@@ -532,8 +713,8 @@ public final class ReferralRepository {
 
     private static boolean selectCodeBlocked(Connection connection, String code) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "SELECT blocked FROM ac_referral_codes WHERE code = ?")) {
-            ps.setString(1, code.toUpperCase());
+                "SELECT blocked FROM ac_referral_codes WHERE UPPER(code) = ?")) {
+            ps.setString(1, code.toUpperCase(Locale.ROOT));
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return false;

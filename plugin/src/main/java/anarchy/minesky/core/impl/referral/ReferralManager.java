@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +20,7 @@ public final class ReferralManager {
 
     public static final String PERMISSION = "anarchycore.convite";
     public static final String ADMIN_PERMISSION = "anarchycore.convite.admin";
+    public static final String CUSTOM_CODE_PERMISSION = "anarchycore.referral.customcode";
 
     private final Plugin plugin;
     private final ReferralSettings settings;
@@ -34,6 +36,8 @@ public final class ReferralManager {
     private final FeedbackManager feedback;
     private final Map<UUID, Long> lastRedeemAttempt = new ConcurrentHashMap<>();
     private final Map<UUID, Object> redeemLocks = new ConcurrentHashMap<>();
+    private final Map<UUID, Object> customCodeLocks = new ConcurrentHashMap<>();
+    private final Set<UUID> welcomePending = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Object> referrerLocks = new ConcurrentHashMap<>();
     private final Map<String, Object> subnetLocks = new ConcurrentHashMap<>();
 
@@ -90,9 +94,11 @@ public final class ReferralManager {
             }
         }
         notifyPendingRewardOnJoin(player);
+        scheduleWelcomeDialog(player);
     }
 
     public void onPlayerQuit(Player player) {
+        welcomePending.remove(player.getUniqueId());
         qualification.unbind(player.getUniqueId());
     }
 
@@ -195,6 +201,162 @@ public final class ReferralManager {
                 FeedbackPriority.NORMAL, false, UiSoundMode.NONE));
     }
 
+    public String customCodePermission() {
+        String permission = settings.customCodePermission();
+        return permission == null || permission.isBlank() ? CUSTOM_CODE_PERMISSION : permission;
+    }
+
+    public void setCustomCode(Player player, String rawCode) {
+        try {
+            setCustomCodeUnsafe(player, rawCode);
+        } catch (Throwable error) {
+            fail(player, "setCustomCode", error);
+        }
+    }
+
+    private void setCustomCodeUnsafe(Player player, String rawCode) {
+        if (!isEnabled()) {
+            sendError(player, "referral.error.disabled");
+            return;
+        }
+        if (!settings.customCodeEnabled()) {
+            sendText(player, "referral.custom.disabled", "&cCódigos personalizados estão desativados.",
+                    UiSoundMode.ERROR);
+            return;
+        }
+        if (!player.hasPermission(customCodePermission())) {
+            sendText(player, "referral.custom.no-permission",
+                    "&cVocê não pode definir um código personalizado.", UiSoundMode.ERROR);
+            return;
+        }
+        if (repository.isPlayerBlocked(player.getUniqueId())) {
+            sendText(player, "referral.custom.blocked",
+                    "&cVocê está bloqueado no sistema de convites.", UiSoundMode.ERROR);
+            return;
+        }
+        ReferralCustomCodeRules rules = settings.customCodeRules();
+        String code = rules.normalize(rawCode);
+        ReferralCustomCodeRules.Problem problem = rules.validate(code);
+        if (problem == ReferralCustomCodeRules.Problem.RESERVED) {
+            sendText(player, "referral.custom.reserved", "&cEsse código é reservado.", UiSoundMode.ERROR);
+            return;
+        }
+        if (problem == ReferralCustomCodeRules.Problem.BLACKLISTED) {
+            sendText(player, "referral.custom.blacklist", "&cEsse código não é permitido.", UiSoundMode.ERROR);
+            return;
+        }
+        if (problem != null || code == null) {
+            sendText(player, "referral.custom.invalid",
+                    "&cCódigo inválido. Use 3 a 16 caracteres: A-Z, 0-9, _ ou -.", UiSoundMode.ERROR);
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        Object lock = customCodeLocks.computeIfAbsent(uuid, ignored -> new Object());
+        synchronized (lock) {
+            ReferralRepository.CodeState state = repository.codeState(uuid);
+            int changes = state == null ? 0 : state.changeCount();
+            long changedAt = state == null ? 0L : state.changedAt();
+            boolean same = state != null && state.code() != null && state.code().equalsIgnoreCase(code);
+            if (!same) {
+                ReferralCustomCodeRules.ChangeProblem change = rules.checkChange(changes, changedAt, System.currentTimeMillis());
+                if (change == ReferralCustomCodeRules.ChangeProblem.LIMIT) {
+                    sendText(player, "referral.custom.limit",
+                            "&cVocê atingiu o limite de trocas de código.", UiSoundMode.ERROR);
+                    return;
+                }
+                if (change == ReferralCustomCodeRules.ChangeProblem.COOLDOWN) {
+                    sendText(player, "referral.custom.cooldown",
+                            "&cAguarde antes de trocar seu código novamente.", UiSoundMode.ERROR);
+                    return;
+                }
+            }
+            ReferralRepository.AssignResult result = repository.assignCustomCode(uuid, code, System.currentTimeMillis());
+            if (result == ReferralRepository.AssignResult.TAKEN) {
+                sendText(player, "referral.custom.taken",
+                        "&cEsse código já pertence a outro jogador.", UiSoundMode.ERROR);
+                return;
+            }
+            if (result == ReferralRepository.AssignResult.UNCHANGED) {
+                sendText(player, "referral.custom.same", "&eEsse já é o seu código.", UiSoundMode.NONE);
+                return;
+            }
+            if (result != ReferralRepository.AssignResult.APPLIED) {
+                sendError(player, "referral.error.internal");
+                return;
+            }
+            audit.logAsync(uuid, null, "CODE_CUSTOMIZED", null, "code=" + code);
+            sendText(player, "referral.custom.success", "&#7BED9FSeu código agora é &f&l{code}",
+                    UiSoundMode.SUCCESS, "code", code);
+        }
+    }
+
+    public void markWelcomeDialogSeen(UUID playerUuid) {
+        repository.markWelcomeSeenAsync(playerUuid).exceptionally(error -> {
+            plugin.getLogger().log(Level.SEVERE, "[Referral] Não foi possível gravar o diálogo de convite", error);
+            return null;
+        });
+    }
+
+    public void sendWelcomeSkipped(Player player) {
+        sendText(player, "referral.dialog.skipped",
+                "&7Tudo bem. Se conseguir um código, use &f/convite usar <codigo>&7 dentro do prazo.",
+                UiSoundMode.NONE);
+    }
+
+    public void sendWelcomeEmpty(Player player) {
+        sendText(player, "referral.dialog.empty",
+                "&cDigite um código ou use &f/convite usar <codigo>&7 dentro do prazo.",
+                UiSoundMode.ERROR);
+    }
+
+    private void scheduleWelcomeDialog(Player player) {
+        if (!settings.welcomeDialogEnabled() || !isEnabled()) {
+            return;
+        }
+        if (!player.hasPermission(PERMISSION)) {
+            return;
+        }
+        if (player.hasPlayedBefore()) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        if (!welcomePending.add(uuid)) {
+            return;
+        }
+        repository.loadWelcomeGateAsync(uuid).thenAccept(gate -> player.getScheduler().run(plugin, task -> {
+            if (!plugin.isEnabled() || !player.isOnline() || !welcomePending.contains(uuid)) {
+                welcomePending.remove(uuid);
+                return;
+            }
+            boolean open = gate != null && ReferralWelcomePolicy.shouldOpen(
+                    true,
+                    settings.welcomeDialogEnabled(),
+                    !player.hasPlayedBefore(),
+                    player.hasPermission(PERMISSION),
+                    gate.seen(),
+                    gate.redeemed(),
+                    gate.blocked());
+            if (!open) {
+                welcomePending.remove(uuid);
+                return;
+            }
+            long delay = Math.max(1L, settings.welcomeDialogDelayTicks());
+            player.getScheduler().runDelayed(plugin, later -> {
+                if (!welcomePending.remove(uuid)) {
+                    return;
+                }
+                if (!plugin.isEnabled() || !player.isOnline() || player.hasPlayedBefore()) {
+                    return;
+                }
+                ReferralWelcomeDialog.open(player, settings, this);
+            }, null, delay);
+        }, null)).exceptionally(error -> {
+            welcomePending.remove(uuid);
+            plugin.getLogger().log(Level.SEVERE, "[Referral] Falha ao consultar o diálogo de primeiro login", error);
+            return null;
+        });
+    }
+
     public void redeemCode(Player invitee, String rawCode) {
         try {
             redeemCodeUnsafe(invitee, rawCode);
@@ -230,7 +392,7 @@ public final class ReferralManager {
                 reject(invitee, null, ReferralRejectReason.INVITEE_BLOCKED, rawCode);
                 return;
             }
-            String code = normalizeCode(rawCode);
+            String code = normalizeRedeemCode(rawCode);
             if (code == null) {
                 reject(invitee, null, ReferralRejectReason.INVALID_CODE, rawCode);
                 return;
@@ -505,6 +667,7 @@ public final class ReferralManager {
     }
 
     public void shutdown() {
+        welcomePending.clear();
         qualification.flushAll();
     }
 
@@ -525,6 +688,15 @@ public final class ReferralManager {
     private void sendError(Player player, String messageKey) {
         deliver(player, () -> feedback.send(
                 player, messages.component(messageKey), FeedbackPriority.HIGH, true, UiSoundMode.ERROR));
+    }
+
+    private void sendText(Player player, String key, String fallback, UiSoundMode sound, String... placeholders) {
+        deliver(player, () -> feedback.send(
+                player,
+                messages.componentOr(key, fallback, placeholders),
+                sound == UiSoundMode.ERROR ? FeedbackPriority.HIGH : FeedbackPriority.NORMAL,
+                true,
+                sound));
     }
 
     private void fail(Player player, String action, Throwable error) {
@@ -555,13 +727,24 @@ public final class ReferralManager {
         player.getScheduler().run(plugin, task -> safe.run(), null);
     }
 
-    private static String normalizeCode(String raw) {
+    private String normalizeRedeemCode(String raw) {
         if (raw == null) {
             return null;
         }
         String code = raw.trim().toUpperCase(Locale.ROOT);
-        if (code.length() < 6 || code.length() > 16) {
+        if (code.isEmpty()) {
             return null;
+        }
+        int customMin = settings.customCodeRules() != null ? settings.customCodeRules().minLength() : 3;
+        int min = Math.min(6, Math.max(1, customMin));
+        if (code.length() < min || code.length() > 16) {
+            return null;
+        }
+        for (int i = 0; i < code.length(); i++) {
+            char symbol = code.charAt(i);
+            if (Character.isWhitespace(symbol) || symbol == '<' || symbol == '>' || symbol == '&') {
+                return null;
+            }
         }
         return code;
     }

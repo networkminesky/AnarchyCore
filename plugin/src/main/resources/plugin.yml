@@ -115,6 +115,12 @@ permissions:
   anarchycore.convite.admin:
     description: Comandos admin do sistema de convites (/anarchycore convite ...)
     default: op
+<<<<<<< HEAD
   anarchycore.blocks.admin:
     description: Comandos admin de blocos interativos (/anarchycore blocks ...)
     default: op
+=======
+  anarchycore.referral.customcode:
+    description: Permite definir um código de convite personalizado (/convite definir)
+    default: false
+>>>>>>> 33a7b2edcedc647cec535eb6313960bd6a71b353

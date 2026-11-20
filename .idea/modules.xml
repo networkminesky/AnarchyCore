@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/api/AnarchyCore.api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/api/AnarchyCore.api.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/plugin-test/AnarchyCore.plugin-test.test.iml" filepath="$PROJECT_DIR$/.idea/modules/plugin-test/AnarchyCore.plugin-test.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.main.iml" filepath="$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.test.iml" filepath="$PROJECT_DIR$/.idea/modules/plugin/AnarchyCore.plugin.test.iml" />
     </modules>

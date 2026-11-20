@@ -36,8 +36,19 @@ public final class MessagesManager {
                         new InputStreamReader(defaults, StandardCharsets.UTF_8));
                 loaded.setDefaults(bundled);
                 loaded.options().copyDefaults(true);
-                if (!fileContainsReferral(file) && bundled.contains("referral.usage")) {
+                boolean dirty = false;
+                if (needsReferralMerge(file)) {
+                    String legacyRoot = "&cUso: /convite [usar <codigo>|codigo|status]";
+                    if (legacyRoot.equals(diskString(file, "referral.usage.root"))) {
+                        String updated = bundled.getString("referral.usage.root");
+                        if (updated != null) {
+                            loaded.set("referral.usage.root", updated);
+                        }
+                    }
                     loaded.save(file);
+                    dirty = true;
+                }
+                if (dirty) {
                     plugin.getLogger().info("[Referral] Chaves novas de referral gravadas em messages.yml.");
                 }
             }
@@ -47,9 +58,31 @@ public final class MessagesManager {
         messages = loaded;
     }
 
-    private static boolean fileContainsReferral(File file) throws IOException {
+    private static boolean needsReferralMerge(File file) throws IOException {
         YamlConfiguration disk = YamlConfiguration.loadConfiguration(file);
-        return disk.contains("referral.usage");
+        if (!disk.contains("referral.custom.success") || !disk.contains("referral.dialog.skipped")) {
+            return true;
+        }
+        return "&cUso: /convite [usar <codigo>|codigo|status]".equals(disk.getString("referral.usage.root"));
+    }
+
+    private static String diskString(File file, String path) throws IOException {
+        YamlConfiguration disk = YamlConfiguration.loadConfiguration(file);
+        return disk.getString(path);
+    }
+
+    public Component componentOr(String path, String fallback, String... placeholders) {
+        String text = raw(path);
+        if (text == null || text.equals(path)) {
+            text = fallback != null ? fallback : path;
+            if (placeholders != null) {
+                for (int i = 0; i + 1 < placeholders.length; i += 2) {
+                    text = text.replace("{" + placeholders[i] + "}", Objects.toString(placeholders[i + 1], ""));
+                }
+            }
+            return DialogComponentUtils.parse(text);
+        }
+        return component(path, placeholders);
     }
 
     public String raw(String path) {

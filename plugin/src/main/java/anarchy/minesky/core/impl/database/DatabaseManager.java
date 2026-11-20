@@ -282,9 +282,25 @@ public final class DatabaseManager {
                           code VARCHAR(16) NOT NULL,
                           created_at BIGINT NOT NULL,
                           blocked TINYINT(1) NOT NULL DEFAULT 0,
+                          code_changed_at BIGINT NOT NULL DEFAULT 0,
+                          code_change_count INT NOT NULL DEFAULT 0,
                           UNIQUE KEY uk_referral_code (code)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
+                try {
+                    statement.execute("""
+                            ALTER TABLE ac_referral_codes
+                            ADD COLUMN code_changed_at BIGINT NOT NULL DEFAULT 0
+                            """);
+                } catch (SQLException ignored) {
+                }
+                try {
+                    statement.execute("""
+                            ALTER TABLE ac_referral_codes
+                            ADD COLUMN code_change_count INT NOT NULL DEFAULT 0
+                            """);
+                } catch (SQLException ignored) {
+                }
                 statement.execute("""
                         CREATE TABLE IF NOT EXISTS ac_referral_redemptions (
                           id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -344,9 +360,17 @@ public final class DatabaseManager {
                         CREATE TABLE IF NOT EXISTS ac_player_identity (
                           player_uuid CHAR(36) NOT NULL PRIMARY KEY,
                           first_join_at BIGINT NOT NULL,
-                          client_brand VARCHAR(128) NOT NULL DEFAULT ''
+                          client_brand VARCHAR(128) NOT NULL DEFAULT '',
+                          referral_dialog_seen TINYINT(1) NOT NULL DEFAULT 0
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                         """);
+                try {
+                    statement.execute("""
+                            ALTER TABLE ac_player_identity
+                            ADD COLUMN referral_dialog_seen TINYINT(1) NOT NULL DEFAULT 0
+                            """);
+                } catch (SQLException ignored) {
+                }
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }

@@ -3,6 +3,11 @@ package anarchy.minesky.core.impl.referral;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 
+import java.util.List;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
 public final class ReferralSettings {
 
     private final Plugin plugin;
@@ -29,6 +34,17 @@ public final class ReferralSettings {
     private long redeemCooldownMs;
     private int maxCodeGenerationAttempts;
     private int cycleMaxDepth;
+    private boolean customCodeEnabled;
+    private String customCodePermission;
+    private ReferralCustomCodeRules customCodeRules;
+    private boolean welcomeDialogEnabled;
+    private long welcomeDialogDelayTicks;
+    private String welcomeTitle;
+    private String welcomeBody;
+    private String welcomeInputLabel;
+    private String welcomeInputPlaceholder;
+    private String welcomeConfirm;
+    private String welcomeSkip;
 
     public ReferralSettings(Plugin plugin) {
         this.plugin = plugin;
@@ -66,6 +82,68 @@ public final class ReferralSettings {
         redeemCooldownMs = config.getLong("referral.security.redeem-cooldown-seconds", 5L) * 1000L;
         maxCodeGenerationAttempts = config.getInt("referral.code.max-generation-attempts", 20);
         cycleMaxDepth = Math.max(1, config.getInt("referral.security.cycle-depth", 16));
+        customCodeEnabled = config.getBoolean("referral.custom-code.enabled", true);
+        String permission = config.getString("referral.custom-code.permission", "anarchycore.referral.customcode");
+        customCodePermission = permission == null || permission.isBlank()
+                ? "anarchycore.referral.customcode"
+                : permission.trim();
+        customCodeRules = loadCustomCodeRules(config);
+        welcomeDialogEnabled = config.getBoolean("referral.first-join-dialog.enabled", true);
+        int delay = config.getInt("referral.first-join-dialog.delay-ticks", 30);
+        if (delay < 1) {
+            delay = 1;
+        } else if (delay > 1200) {
+            delay = 1200;
+        }
+        welcomeDialogDelayTicks = delay;
+        welcomeTitle = text(config, "referral.first-join-dialog.title", "&#7BED9FConvite");
+        welcomeBody = text(config, "referral.first-join-dialog.body",
+                "&7Se alguém te convidou, digite o código abaixo. Você também pode usar &f/convite usar <codigo>&7 dentro do prazo.");
+        welcomeInputLabel = text(config, "referral.first-join-dialog.input-label", "&fCódigo de convite");
+        welcomeInputPlaceholder = text(config, "referral.first-join-dialog.input-placeholder", "CODIGO");
+        welcomeConfirm = text(config, "referral.first-join-dialog.confirm-button", "&#7BED9FResgatar");
+        welcomeSkip = text(config, "referral.first-join-dialog.skip-button", "&7Não tenho código");
+    }
+
+    private ReferralCustomCodeRules loadCustomCodeRules(FileConfiguration config) {
+        int max = config.getInt("referral.custom-code.max-length", 16);
+        if (max > 16) {
+            plugin.getLogger().warning("[Referral] custom-code.max-length acima de 16 foi limitado a 16.");
+            max = 16;
+        }
+        if (max < 1) {
+            max = 1;
+        }
+        int min = config.getInt("referral.custom-code.min-length", 3);
+        if (min < 1) {
+            min = 1;
+        }
+        if (min > max) {
+            min = max;
+        }
+        String pattern = config.getString("referral.custom-code.pattern", ReferralCustomCodeRules.DEFAULT_PATTERN);
+        if (pattern != null && !pattern.isBlank()) {
+            try {
+                Pattern.compile(pattern);
+            } catch (PatternSyntaxException error) {
+                plugin.getLogger().log(Level.WARNING,
+                        "[Referral] regex de código custom inválida; usando o padrão.", error);
+                pattern = ReferralCustomCodeRules.DEFAULT_PATTERN;
+            }
+        }
+        long cooldownMs = Math.max(0L, config.getLong("referral.custom-code.change-cooldown-seconds", 86_400L)) * 1000L;
+        int maxChanges = Math.max(0, config.getInt("referral.custom-code.max-changes", 5));
+        List<String> reserved = config.getStringList("referral.custom-code.reserved");
+        List<String> blacklist = config.getStringList("referral.custom-code.blacklist");
+        return new ReferralCustomCodeRules(pattern, min, max, cooldownMs, maxChanges, reserved, blacklist);
+    }
+
+    private static String text(FileConfiguration config, String path, String fallback) {
+        String value = config.getString(path, fallback);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value;
     }
 
     public boolean enabled() {
@@ -158,5 +236,49 @@ public final class ReferralSettings {
 
     public int cycleMaxDepth() {
         return cycleMaxDepth;
+    }
+
+    public boolean customCodeEnabled() {
+        return customCodeEnabled;
+    }
+
+    public String customCodePermission() {
+        return customCodePermission;
+    }
+
+    public ReferralCustomCodeRules customCodeRules() {
+        return customCodeRules;
+    }
+
+    public boolean welcomeDialogEnabled() {
+        return welcomeDialogEnabled;
+    }
+
+    public long welcomeDialogDelayTicks() {
+        return welcomeDialogDelayTicks;
+    }
+
+    public String welcomeTitle() {
+        return welcomeTitle;
+    }
+
+    public String welcomeBody() {
+        return welcomeBody;
+    }
+
+    public String welcomeInputLabel() {
+        return welcomeInputLabel;
+    }
+
+    public String welcomeInputPlaceholder() {
+        return welcomeInputPlaceholder;
+    }
+
+    public String welcomeConfirm() {
+        return welcomeConfirm;
+    }
+
+    public String welcomeSkip() {
+        return welcomeSkip;
     }
 }

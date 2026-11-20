@@ -399,8 +399,9 @@ friends:
 
 referral:
   usage:
-    root: "&cUso: /convite [usar <codigo>|codigo|status]"
+    root: "&cUso: /convite [usar <codigo>|codigo|status|definir <codigo>]"
     usar: "&cUso: /convite usar <codigo>"
+    definir: "&cUso: /convite definir <codigo>"
   code:
     self: "&#7BED9FSeu código de convite: &f&l{code}"
   status:
@@ -444,6 +445,21 @@ referral:
     referrer_cap_daily: "&cO indicador atingiu o limite diário de recompensas."
     referrer_cap_weekly: "&cO indicador atingiu o limite semanal de recompensas."
     referrer_cap_total: "&cO indicador atingiu o limite total de recompensas."
+  custom:
+    success: "&#7BED9FSeu código agora é &f&l{code}"
+    same: "&eEsse já é o seu código."
+    no-permission: "&cVocê não pode definir um código personalizado."
+    disabled: "&cCódigos personalizados estão desativados."
+    invalid: "&cCódigo inválido. Use 3 a 16 caracteres: A-Z, 0-9, _ ou -."
+    reserved: "&cEsse código é reservado."
+    blacklist: "&cEsse código não é permitido."
+    taken: "&cEsse código já pertence a outro jogador."
+    cooldown: "&cAguarde antes de trocar seu código novamente."
+    limit: "&cVocê atingiu o limite de trocas de código."
+    blocked: "&cVocê está bloqueado no sistema de convites."
+  dialog:
+    skipped: "&7Tudo bem. Se conseguir um código, use &f/convite usar <codigo>&7 dentro do prazo."
+    empty: "&cDigite um código ou use &f/convite usar <codigo>&7 dentro do prazo."
   admin:
     inspect:
       header: "&6Convites — &f{player}"
