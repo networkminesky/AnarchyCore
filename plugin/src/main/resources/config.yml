@@ -15,6 +15,18 @@ default-world-mode: "ENABLED"
 debug: false
 
 # =========================================================
+#             Blocos interativos (blocks.yml)
+# =========================================================
+
+blocks:
+  # Cooldown padrão entre acionamentos do mesmo bloco (ms)
+  default-cooldown-ms: 1000
+  # Intervalo global de partículas (ticks); só blocos com partículas e jogador próximo
+  particle-period-ticks: 10
+  # Distância máxima para spawnar partículas (blocos)
+  particle-view-distance: 32
+
+# =========================================================
 #             FeedbackAPI (action bar)
 # =========================================================
 

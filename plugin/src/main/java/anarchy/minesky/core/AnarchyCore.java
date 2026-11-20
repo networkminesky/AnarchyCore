@@ -29,6 +29,11 @@ import anarchy.minesky.core.command.SpawnCommand;
 import anarchy.minesky.core.command.AmigoCommand;
 import anarchy.minesky.core.command.ConviteCommand;
 import anarchy.minesky.core.command.ReferralAdminHandler;
+import anarchy.minesky.core.command.BlocksAdminHandler;
+import anarchy.minesky.core.impl.blocks.BlockManager;
+import anarchy.minesky.core.impl.blocks.BlockSettings;
+import anarchy.minesky.core.impl.blocks.BlockStorage;
+import anarchy.minesky.core.impl.scheduling.PlayerTickHub;
 import anarchy.minesky.core.command.WarpCommand;
 import anarchy.minesky.core.impl.config.MessagesManager;
 import anarchy.minesky.core.impl.dialogapi.DialogManager;
@@ -137,6 +142,11 @@ public final class AnarchyCore extends JavaPlugin {
     private ReferralAdminHandler referralAdminHandler;
     private ReferralQualificationTracker referralQualificationTracker;
     private ScheduledTask referralTickTask;
+    private PlayerTickHub playerTickHub;
+    private BlockSettings blockSettings;
+    private BlockStorage blockStorage;
+    private BlockManager blockManager;
+    private BlocksAdminHandler blocksAdminHandler;
 
     @Override
     public void onEnable() {
@@ -151,6 +161,9 @@ public final class AnarchyCore extends JavaPlugin {
 
         this.kitStorage = new KitStorage(this);
         this.kitStorage.load();
+
+        this.playerTickHub = new PlayerTickHub(this);
+        getServer().getPluginManager().registerEvents(new PlayerTickHubListener(playerTickHub), this);
 
         this.locatorManager = new LocatorManager(this);
         this.locatorManager.start();
@@ -168,6 +181,13 @@ public final class AnarchyCore extends JavaPlugin {
         this.feedbackManager = new FeedbackManager(this, uiSoundsApi);
         this.feedbackManager.start();
         getServer().getPluginManager().registerEvents(new FeedbackListener(feedbackManager), this);
+
+        this.blockSettings = new BlockSettings(this);
+        this.blockStorage = new BlockStorage(this, blockSettings);
+        this.blockStorage.load();
+        this.blockManager = new BlockManager(this, blockSettings, blockStorage);
+        this.blocksAdminHandler = new BlocksAdminHandler(blockManager, messagesManager, feedbackManager);
+        getServer().getPluginManager().registerEvents(new BlocksListener(blockManager), this);
 
         this.databaseManager = new DatabaseManager(this);
         DatabaseSettings databaseSettings = new DatabaseSettings(this);
@@ -346,7 +366,7 @@ public final class AnarchyCore extends JavaPlugin {
 
         AnarchyCoreCommand coreCommand = new AnarchyCoreCommand(
                 this, messagesManager, feedbackManager, guardCommandHandler, kitsCommandHandler,
-                referralAdminHandler);
+                referralAdminHandler, blocksAdminHandler);
         bind("anarchycore", "Comandos administrativos do AnarchyCore", List.of("acore", "minesky"), coreCommand, coreCommand);
 
         KitsCommand kitsCommand = new KitsCommand(messagesManager, kitManager);
@@ -461,6 +481,9 @@ public final class AnarchyCore extends JavaPlugin {
         if (referralManager != null) {
             referralManager.reload();
         }
+        if (blockManager != null) {
+            blockManager.reload();
+        }
     }
 
     public GuardManager guardManager() {
@@ -475,8 +498,27 @@ public final class AnarchyCore extends JavaPlugin {
         return playerDataApi;
     }
 
+    public PlayerTickHub playerTickHub() {
+        return playerTickHub;
+    }
+
+    public BlockManager blockManager() {
+        return blockManager;
+    }
+
     @Override
     public void onDisable() {
+        if (blockManager != null) {
+            blockManager.shutdown();
+            blockManager = null;
+        }
+        blockStorage = null;
+        blockSettings = null;
+        blocksAdminHandler = null;
+        if (playerTickHub != null) {
+            playerTickHub.shutdown();
+            playerTickHub = null;
+        }
         if (referralTickTask != null) {
             referralTickTask.cancel();
             referralTickTask = null;

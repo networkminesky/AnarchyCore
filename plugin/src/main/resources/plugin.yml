@@ -115,3 +115,6 @@ permissions:
   anarchycore.convite.admin:
     description: Comandos admin do sistema de convites (/anarchycore convite ...)
     default: op
+  anarchycore.blocks.admin:
+    description: Comandos admin de blocos interativos (/anarchycore blocks ...)
+    default: op

@@ -10,7 +10,7 @@ commands:
   reply-no-target: "&cVocê não tem ninguém para responder."
   tell-self: "&cVocê não pode enviar mensagem privada para si mesmo."
   reload-success: "&aAnarchyCore recarregado com sucesso."
-  reload-usage: "&cUso: /anarchycore reload|guard|kits ..."
+  reload-usage: "&cUso: /anarchycore reload|guard|kits|blocks|convite ..."
 
 guard:
   usage: "&cUso: /anarchycore guard <check|info|history|fog> [jogador]"
@@ -178,6 +178,26 @@ warps:
       save-button: "&#7BED9FSalvar"
       cancel-button: "&#FF6B6BCancelar"
       cancelled: "&#AAAAAAEdição cancelada."
+
+blocks:
+  error:
+    invalid-id: "&#FF6B6BID inválido. Use letras, números, _ ou - (máx. 32)."
+    invalid-type: "&#FF6B6BTipo inválido. Use &#FFFFFFPOSITION &#FF6B6Bou &#FFFFFFCLICK&#FF6B6B."
+    not-found: "&#FF6B6BBloco &#FFFFFF{id} &#FF6B6Bnão encontrado."
+    already-exists: "&#FF6B6BJá existe um bloco &#FFFFFF{id}&#FF6B6B."
+  admin:
+    usage: "&#FF6B6BUso: &#FFFFFF/anarchycore blocks <create|edit|remove|reload> ..."
+    create-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore blocks create <id> <POSITION|CLICK> [comando]"
+    edit-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore blocks edit <id> <location|type|commands> ..."
+    edit-type-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore blocks edit <id> type <POSITION|CLICK>"
+    edit-commands-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore blocks edit <id> commands <comando ...>"
+    create-success: "&#7BED9FBloco &#FFFFFF{id} &#7BED9Fcriado na sua posição."
+    remove-usage: "&#FF6B6BUso: &#FFFFFF/anarchycore blocks remove <id>"
+    remove-success: "&#FF6B6BBloco &#FFFFFF{id} &#FF6B6Bremovido."
+    reload-success: "&#7BED9FBlocos recarregados do disco."
+    edit-location-success: "&#7BED9FPosição do bloco &#FFFFFF{id} &#7BED9Fatualizada."
+    edit-type-success: "&#7BED9FTipo do bloco &#FFFFFF{id} &#7BED9Fatualizado."
+    edit-commands-success: "&#7BED9FComandos do bloco &#FFFFFF{id} &#7BED9Fatualizados."
 
 kits:
   error:

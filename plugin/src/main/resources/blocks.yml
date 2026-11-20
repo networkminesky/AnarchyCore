@@ -1,0 +1,19 @@
+# Blocos interativos: comandos ao entrar (POSITION) ou clicar (CLICK).
+# Admin: /anarchycore blocks create|edit|remove|reload
+
+blocks:
+  rtp:
+    location:
+      world: world
+      x: 0
+      y: 64
+      z: 0
+    type: POSITION
+    commands:
+      - "rtp overworld"
+    cooldown-ms: 1500
+    particles:
+      name: PORTAL
+      amount: 5
+      speed: 0.01
+      spread: 0.5

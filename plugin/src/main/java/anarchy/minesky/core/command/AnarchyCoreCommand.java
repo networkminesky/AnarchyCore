@@ -27,6 +27,7 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
     private final GuardCommandHandler guardCommandHandler;
     private final KitsCommandHandler kitsCommandHandler;
     private final ReferralAdminHandler referralAdminHandler;
+    private final BlocksAdminHandler blocksAdminHandler;
 
     public AnarchyCoreCommand(
             AnarchyCore plugin,
@@ -34,13 +35,15 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
             FeedbackManager feedback,
             GuardCommandHandler guardCommandHandler,
             KitsCommandHandler kitsCommandHandler,
-            ReferralAdminHandler referralAdminHandler) {
+            ReferralAdminHandler referralAdminHandler,
+            BlocksAdminHandler blocksAdminHandler) {
         this.plugin = plugin;
         this.messages = messages;
         this.feedback = feedback;
         this.guardCommandHandler = guardCommandHandler;
         this.kitsCommandHandler = kitsCommandHandler;
         this.referralAdminHandler = referralAdminHandler;
+        this.blocksAdminHandler = blocksAdminHandler;
     }
 
     @Override
@@ -75,6 +78,9 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
             send(sender, messages.component("referral.admin.usage"));
             return true;
         }
+        if (args[0].equalsIgnoreCase("blocks")) {
+            return blocksAdminHandler.handle(sender, args);
+        }
         send(sender, messages.component("commands.reload-usage"));
         return true;
     }
@@ -99,6 +105,9 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission(ReferralAdminHandler.PERMISSION)) {
                 options.add("convite");
             }
+            if (sender.hasPermission(BlocksAdminHandler.PERMISSION)) {
+                options.add("blocks");
+            }
             String prefix = args[0].toLowerCase(Locale.ROOT);
             return options.stream().filter(o -> o.startsWith(prefix)).toList();
         }
@@ -110,6 +119,9 @@ public final class AnarchyCoreCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("convite") && referralAdminHandler != null) {
             return referralAdminHandler.tabComplete(args);
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("blocks")) {
+            return blocksAdminHandler.tabComplete(args);
         }
         return List.of();
     }
