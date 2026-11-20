@@ -61,5 +61,10 @@
       <option name="name" value="maven7" />
       <option name="url" value="https://repo.codemc.org/repository/maven-public/" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="GitHubPackagesAnarchyEconomy" />
+      <option name="name" value="GitHubPackagesAnarchyEconomy" />
+      <option name="url" value="https://maven.pkg.github.com/networkminesky/AnarchyEconomy" />
+    </remote-repository>
   </component>
 </project>

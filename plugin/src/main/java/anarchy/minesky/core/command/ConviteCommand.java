@@ -67,6 +67,24 @@ public final class ConviteCommand implements CommandExecutor, TabCompleter {
                 referral.showStatus(player);
                 yield true;
             }
+            case "definir", "custom", "set" -> {
+                if (!player.hasPermission(referral.customCodePermission())) {
+                    feedback.send(player, messages.componentOr(
+                                    "referral.custom.no-permission",
+                                    "&cVocê não pode definir um código personalizado."),
+                            FeedbackPriority.HIGH, true, UiSoundMode.ERROR);
+                    yield true;
+                }
+                if (args.length != 2) {
+                    feedback.send(player, messages.componentOr(
+                                    "referral.usage.definir",
+                                    "&cUso: /convite definir <codigo>"),
+                            FeedbackPriority.HIGH, true, UiSoundMode.ERROR);
+                    yield true;
+                }
+                referral.setCustomCode(player, args[1]);
+                yield true;
+            }
             default -> {
                 feedback.send(player, messages.component("referral.usage.root"), FeedbackPriority.HIGH, true,
                         UiSoundMode.ERROR);
@@ -85,7 +103,11 @@ public final class ConviteCommand implements CommandExecutor, TabCompleter {
             return List.of();
         }
         if (args.length == 1) {
-            List<String> options = List.of("usar", "codigo", "status");
+            List<String> options = new ArrayList<>(List.of("usar", "codigo", "status"));
+            if (player.hasPermission(referral.customCodePermission())) {
+                options.add("definir");
+                options.add("custom");
+            }
             String prefix = args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
             for (String option : options) {

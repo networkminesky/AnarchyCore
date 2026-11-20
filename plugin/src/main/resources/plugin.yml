@@ -115,3 +115,6 @@ permissions:
   anarchycore.convite.admin:
     description: Comandos admin do sistema de convites (/anarchycore convite ...)
     default: op
+  anarchycore.referral.customcode:
+    description: Permite definir um código de convite personalizado (/convite definir)
+    default: false

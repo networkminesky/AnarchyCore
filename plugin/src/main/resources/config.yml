@@ -142,6 +142,50 @@ referral:
     cycle-depth: 16
     # Cooldown entre tentativas de /convite usar (brute-force).
     redeem-cooldown-seconds: 5
+  custom-code:
+    enabled: true
+    permission: "anarchycore.referral.customcode"
+    # Aplicado depois de trim + maiúsculas. Espaço, & e tags (< >) são recusados mesmo se o regex mudar.
+    pattern: "^[A-Z0-9_-]{3,16}$"
+    min-length: 3
+    max-length: 16
+    # A primeira definição não espera cooldown. As seguintes respeitam este intervalo.
+    change-cooldown-seconds: 86400
+    # 0 = sem limite. Cada definição bem-sucedida consome uma troca.
+    max-changes: 5
+    reserved:
+      - USAR
+      - USE
+      - RESGATAR
+      - STATUS
+      - INFO
+      - DEFINIR
+      - CUSTOM
+      - SET
+      - CODIGO
+      - CODE
+      - ADMIN
+    blacklist:
+      - STAFF
+      - ADMIN
+      - MODERADOR
+      - DONO
+      - OWNER
+      - HACK
+      - HACKER
+      - PORNO
+      - PUTA
+      - MERDA
+  first-join-dialog:
+    enabled: true
+    # Espera o cliente Java/Bedrock terminar de carregar. Folia: player.getScheduler().runDelayed.
+    delay-ticks: 30
+    title: "&#7BED9FConvite"
+    body: "&7Se alguém te convidou, digite o código abaixo. Você também pode usar &f/convite usar <codigo>&7 dentro do prazo."
+    input-label: "&fCódigo de convite"
+    input-placeholder: "CODIGO"
+    confirm-button: "&#7BED9FResgatar"
+    skip-button: "&7Não tenho código"
   qualification:
     # Prazo para sair de PENDING. Depois disso vira EXPIRED, sem pagamento.
     deadline-days: 7
