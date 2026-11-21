@@ -15,11 +15,11 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-final class ReferralFixtures {
+public final class ReferralFixtures {
 
     private ReferralFixtures() {}
 
-    static YamlConfiguration config(String databaseName) {
+    public static YamlConfiguration config(String databaseName) {
         YamlConfiguration config = new YamlConfiguration();
         config.set("database.enabled", true);
         config.set("database.jdbc-url",
@@ -45,7 +45,7 @@ final class ReferralFixtures {
         return config;
     }
 
-    static DatabaseManager database(String name) {
+    public static DatabaseManager database(String name) {
         Plugin plugin = TestPlugins.create(config(name));
         DatabaseManager database = new DatabaseManager(plugin);
         database.start(new DatabaseSettings(plugin));

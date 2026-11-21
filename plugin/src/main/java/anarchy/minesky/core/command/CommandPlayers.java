@@ -5,11 +5,11 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-final class CommandPlayers {
+public final class CommandPlayers {
 
     private CommandPlayers() {}
 
-    static @Nullable OfflinePlayer resolveOffline(String name) {
+    public static @Nullable OfflinePlayer resolveOffline(String name) {
         Player online = resolve(name);
         if (online != null) {
             return online;

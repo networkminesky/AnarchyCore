@@ -121,6 +121,11 @@ homes:
 #             MariaDB / preferências de jogador
 # =========================================================
 
+leaderboards:
+  weekly:
+    # Fuso ISO para a chave da semana (ex.: 2026-W47) do ranking semanal.
+    zone: "America/Sao_Paulo"
+
 database:
   enabled: true
   jdbc-url: "jdbc:mariadb://127.0.0.1:3306/anarchycore?useUnicode=true&characterEncoding=utf8"

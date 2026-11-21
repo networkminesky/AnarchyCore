@@ -81,6 +81,14 @@ public final class HeadURLResolver {
         });
     }
 
+  /** Cabeça Adventure ({@link Component#object}) para UUID ou nick — vazio se sem textura. */
+    public static Component playerHeadFor(String uuidOrName) {
+        if (uuidOrName == null || uuidOrName.isBlank()) {
+            return Component.empty();
+        }
+        return buildHeadFromPlayerSpecifier(uuidOrName.trim());
+    }
+
     private static Component buildHeadFromPlayerSpecifier(String spec) {
         if (spec == null || spec.isBlank()) {
             return Component.empty();

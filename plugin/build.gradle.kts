@@ -4,6 +4,7 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-snapshots/") }
     maven { url = uri("https://jitpack.io") }
@@ -39,7 +40,7 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.12.3")
     compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
     compileOnly("com.github.networkminesky:AnarchyTags:1.0.0")
-    compileOnly("anarchy.minesky:anarchyeconomy-api:1.0.1")
+    compileOnly("anarchy.minesky:anarchyeconomy-api:1.0.3")
 
     compileOnly("net.skinsrestorer:skinsrestorer-api:15.12.6")
 

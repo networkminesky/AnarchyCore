@@ -1,8 +1,8 @@
 package anarchy.minesky.core.listener;
 
-import anarchy.minesky.core.AnarchyCoreBootstrap;
 import anarchy.minesky.core.api.playerdata.PlayerDataAPI;
-import anarchy.minesky.core.impl.playerprefs.ConfigManager;
+import anarchy.minesky.core.impl.escmenu.EscMenuKeys;
+import anarchy.minesky.core.impl.escmenu.EscMenuRuntime;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesService;
 import anarchy.minesky.core.impl.tpa.TpaManager;
 import io.papermc.paper.connection.PlayerGameConnection;
@@ -18,19 +18,19 @@ public final class PlayerPreferencesListener implements Listener {
 
     private final Plugin plugin;
     private final PlayerPreferencesService prefs;
-    private final ConfigManager config;
+    private final EscMenuRuntime escMenu;
     private final PlayerDataAPI playerData;
     private final TpaManager tpaManager;
 
     public PlayerPreferencesListener(
             Plugin plugin,
             PlayerPreferencesService prefs,
-            ConfigManager config,
+            EscMenuRuntime escMenu,
             PlayerDataAPI playerData,
             TpaManager tpaManager) {
         this.plugin = plugin;
         this.prefs = prefs;
-        this.config = config;
+        this.escMenu = escMenu;
         this.playerData = playerData;
         this.tpaManager = tpaManager;
     }
@@ -51,7 +51,7 @@ public final class PlayerPreferencesListener implements Listener {
 
     @EventHandler
     public void onCustomClick(PlayerCustomClickEvent event) {
-        if (!event.getIdentifier().equals(AnarchyCoreBootstrap.OPEN_CONFIG_KEY)) {
+        if (!EscMenuKeys.isEscCustomClick(event.getIdentifier())) {
             return;
         }
         if (!(event.getCommonConnection() instanceof PlayerGameConnection connection)) {
@@ -61,12 +61,11 @@ public final class PlayerPreferencesListener implements Listener {
         if (player == null || !player.isOnline()) {
             return;
         }
-        // Não chamar closeDialog(): isso volta ao menu ESC e o showDialog do /config se perde.
-        player.getScheduler().runDelayed(plugin, task -> {
+        player.getScheduler().run(plugin, task -> {
             if (!plugin.isEnabled() || !player.isOnline()) {
                 return;
             }
-            config.openMainMenu(player);
-        }, null, 1L);
+            escMenu.handleCustomClick(event.getIdentifier(), player);
+        }, null);
     }
 }

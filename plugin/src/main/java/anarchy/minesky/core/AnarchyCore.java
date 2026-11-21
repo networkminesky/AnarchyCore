@@ -28,6 +28,7 @@ import anarchy.minesky.core.command.SetWarpCommand;
 import anarchy.minesky.core.command.SpawnCommand;
 import anarchy.minesky.core.command.AmigoCommand;
 import anarchy.minesky.core.command.ConviteCommand;
+import anarchy.minesky.core.command.EscMenuCommand;
 import anarchy.minesky.core.command.ReferralAdminHandler;
 import anarchy.minesky.core.command.BlocksAdminHandler;
 import anarchy.minesky.core.impl.blocks.BlockManager;
@@ -56,6 +57,32 @@ import anarchy.minesky.core.impl.homes.HomeSettings;
 import anarchy.minesky.core.impl.database.DatabaseManager;
 import anarchy.minesky.core.impl.database.DatabaseSettings;
 import anarchy.minesky.core.impl.playerprefs.ConfigManager;
+import anarchy.minesky.core.impl.escmenu.EscMenuConfigLoader;
+import anarchy.minesky.core.impl.escmenu.EscMenuDefinition;
+import anarchy.minesky.core.impl.escmenu.EscMenuRuntime;
+import anarchy.minesky.core.impl.economy.AnarchyEconomyQueryProvider;
+import anarchy.minesky.core.impl.escmenu.economy.AnarchyEconomyMoneyProvider;
+import anarchy.minesky.core.impl.leaderboards.LeaderboardDialog;
+import anarchy.minesky.core.impl.leaderboards.LeaderboardService;
+import anarchy.minesky.core.impl.stats.LeaderboardSettings;
+import anarchy.minesky.core.impl.stats.PlayerStatsRepository;
+import anarchy.minesky.core.impl.stats.PlayerStatsService;
+import anarchy.minesky.core.impl.stats.PlayerStatsWeeklyRepository;
+import anarchy.minesky.core.impl.stats.WeeklyStatsSyncService;
+import anarchy.minesky.core.impl.presence.PlayerPresenceRepository;
+import anarchy.minesky.core.impl.presence.PlayerPresenceTracker;
+import anarchy.minesky.core.listener.PlayerPresenceListener;
+import anarchy.minesky.core.listener.PlayerStatsListener;
+import anarchy.minesky.core.command.LeaderboardsCommand;
+import anarchy.minesky.core.command.OtpCommand;
+import anarchy.minesky.core.command.SeenCommand;
+import anarchy.minesky.core.command.StatsCommand;
+import anarchy.minesky.core.impl.profile.PlayerProfileFlow;
+import anarchy.minesky.core.impl.profile.PlayerProfileGui;
+import anarchy.minesky.core.impl.clans.AnarchyClansQueryProvider;
+import anarchy.minesky.core.impl.combat.CombatStatsRepository;
+import anarchy.minesky.core.impl.profile.PlayerProfileLoader;
+import anarchy.minesky.core.listener.PlayerProfileListener;
 import anarchy.minesky.core.impl.playerprefs.EscPauseMenuSupport;
 import anarchy.minesky.core.impl.playerprefs.PlayerConfigAPIImpl;
 import anarchy.minesky.core.impl.playerprefs.PlayerPreferencesRepository;
@@ -147,6 +174,16 @@ public final class AnarchyCore extends JavaPlugin {
     private BlockStorage blockStorage;
     private BlockManager blockManager;
     private BlocksAdminHandler blocksAdminHandler;
+    private EscMenuRuntime escMenuRuntime;
+    private AnarchyEconomyMoneyProvider economyMoneyProvider;
+    private AnarchyEconomyQueryProvider economyQueryProvider;
+    private PlayerStatsService playerStatsService;
+    private LeaderboardDialog leaderboardDialog;
+    private PlayerProfileFlow playerProfileFlow;
+    private CombatStatsRepository combatStatsRepository;
+    private AnarchyClansQueryProvider clansQueryProvider;
+    private PlayerPresenceRepository playerPresenceRepository;
+    private PlayerPresenceTracker playerPresenceTracker;
 
     @Override
     public void onEnable() {
@@ -196,6 +233,28 @@ public final class AnarchyCore extends JavaPlugin {
         } catch (Exception e) {
             getLogger().severe("Falha ao iniciar database: " + e.getMessage());
         }
+
+        PlayerStatsRepository playerStatsRepository = new PlayerStatsRepository(databaseManager);
+        this.combatStatsRepository = new CombatStatsRepository(databaseManager);
+        this.clansQueryProvider = new AnarchyClansQueryProvider(this, combatStatsRepository);
+        this.clansQueryProvider.start();
+
+        this.economyQueryProvider = new AnarchyEconomyQueryProvider(this);
+        this.economyQueryProvider.start();
+
+        PlayerStatsWeeklyRepository playerStatsWeeklyRepository = new PlayerStatsWeeklyRepository(databaseManager);
+        LeaderboardSettings leaderboardSettings = new LeaderboardSettings(this);
+        WeeklyStatsSyncService weeklyStatsSync =
+                new WeeklyStatsSyncService(playerStatsWeeklyRepository, leaderboardSettings);
+        this.playerStatsService = new PlayerStatsService(
+                this, playerStatsRepository, clansQueryProvider, weeklyStatsSync);
+        this.playerStatsService.start();
+        getServer().getPluginManager().registerEvents(new PlayerStatsListener(playerStatsService), this);
+
+        this.playerPresenceRepository = new PlayerPresenceRepository(databaseManager);
+        this.playerPresenceTracker = new PlayerPresenceTracker(this, playerPresenceRepository);
+        getServer().getPluginManager().registerEvents(new PlayerPresenceListener(playerPresenceTracker), this);
+        getServer().getOnlinePlayers().forEach(playerPresenceTracker::trackExistingOnline);
 
         PlayerPreferencesRepository preferencesRepository = new PlayerPreferencesRepository(this, databaseManager);
         this.playerPreferencesService = new PlayerPreferencesService(preferencesRepository);
@@ -301,16 +360,53 @@ public final class AnarchyCore extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new SkinJoinApplier(this), this);
         }
 
+        this.economyMoneyProvider = new AnarchyEconomyMoneyProvider(this);
+        this.economyMoneyProvider.start();
+
+        LeaderboardService leaderboardService = new LeaderboardService(
+                this,
+                playerStatsService,
+                clansQueryProvider,
+                economyQueryProvider,
+                playerStatsWeeklyRepository,
+                leaderboardSettings);
+
+        PlayerProfileLoader profileLoader = new PlayerProfileLoader(
+                this, playerStatsService.repository(), clansQueryProvider, economyQueryProvider);
+        PlayerProfileGui profileGui = new PlayerProfileGui(this);
+        this.playerProfileFlow =
+                new PlayerProfileFlow(this, profileLoader, profileGui, messagesManager, feedbackManager);
+        getServer().getPluginManager().registerEvents(new PlayerProfileListener(playerProfileFlow), this);
+
+        this.leaderboardDialog = new LeaderboardDialog(this, dialogManager, leaderboardService, playerProfileFlow);
+
+        EscMenuDefinition escMenuDefinition = loadEscMenuDefinition();
+        this.escMenuRuntime = new EscMenuRuntime(
+                this,
+                escMenuDefinition,
+                dialogManager,
+                configManager,
+                referralManager,
+                friendsManager,
+                feedbackManager,
+                economyMoneyProvider,
+                leaderboardDialog,
+                playerProfileFlow);
+
         registerCommands();
 
         getServer().getPluginManager().registerEvents(new PlayerEvents(), this);
         getServer().getPluginManager().registerEvents(new FriendsJoinListener(friendsManager), this);
         getServer().getPluginManager().registerEvents(
-                new PlayerPreferencesListener(this, playerPreferencesService, configManager, playerDataApi, tpaManager), this);
+                new PlayerPreferencesListener(this, playerPreferencesService, escMenuRuntime, playerDataApi, tpaManager),
+                this);
         getServer().getOnlinePlayers().forEach(p -> {
             playerPreferencesService.loadPlayer(p.getUniqueId());
             if (kitManager != null) {
                 kitManager.preloadPlayer(p.getUniqueId());
+            }
+            if (playerStatsService != null) {
+                playerStatsService.onJoin(p);
             }
         });
         getServer().getPluginManager().registerEvents(new PluginCommandBlockListener(tabSettings), this);
@@ -419,6 +515,39 @@ public final class AnarchyCore extends JavaPlugin {
 
         ConviteCommand conviteCommand = new ConviteCommand(messagesManager, feedbackManager, referralManager);
         bind("convite", "Código de convite e indicações", List.of("indicar", "referral"), conviteCommand, conviteCommand);
+
+        LeaderboardsCommand leaderboardsCommand = new LeaderboardsCommand(this, messagesManager, leaderboardDialog);
+        bind("leaderboards", "Rankings do servidor", List.of("top", "ranking", "ranks"), leaderboardsCommand, null);
+        bind("top", "Rankings do servidor", List.of(), leaderboardsCommand, null);
+
+        StatsCommand statsCommand = new StatsCommand(this, messagesManager, feedbackManager, playerProfileFlow);
+        bind("stats", "Perfil e estatísticas", List.of("perfil", "profile"), statsCommand, statsCommand);
+
+        SeenCommand seenCommand = new SeenCommand(
+                this, messagesManager, feedbackManager, playerPresenceTracker, playerPresenceRepository);
+        bind("seen", "Última vez visto de um jogador", List.of(), seenCommand, seenCommand);
+
+        OtpCommand otpCommand = new OtpCommand(this, messagesManager, feedbackManager, playerPresenceRepository);
+        bind("otp", "Teleporta até o último logout de um jogador", List.of(), otpCommand, otpCommand);
+
+        if (escMenuRuntime.definition().commandEnabled()) {
+            EscMenuDefinition esc = escMenuRuntime.definition();
+            EscMenuCommand escMenuCommand = new EscMenuCommand(messagesManager, feedbackManager, escMenuRuntime);
+            bind(esc.commandName(), "Abre o hub do servidor (menu ESC)", esc.commandAliases(), escMenuCommand, null);
+        }
+    }
+
+    private EscMenuDefinition loadEscMenuDefinition() {
+        try {
+            return EscMenuConfigLoader.loadFromDataDirectory(getDataFolder().toPath());
+        } catch (Exception error) {
+            getLogger().warning("[AnarchyCore] Falha ao carregar esc-menu.yml em runtime: " + error.getMessage());
+            try {
+                return EscMenuConfigLoader.loadFromResourceOnly();
+            } catch (Exception fallback) {
+                throw new IllegalStateException("esc-menu.yml embutido ausente", fallback);
+            }
+        }
     }
 
     private void bind(
@@ -576,6 +705,15 @@ public final class AnarchyCore extends JavaPlugin {
         homeSettings = null;
         friendsManager = null;
         friendsRepository = null;
+        if (playerStatsService != null) {
+            playerStatsService.shutdown();
+            playerStatsService = null;
+        }
+        if (playerPresenceTracker != null) {
+            playerPresenceTracker.flushOnlineSync();
+            playerPresenceTracker = null;
+        }
+        playerPresenceRepository = null;
         if (databaseManager != null) {
             if (playerPreferencesService != null) {
                 getServer().getOnlinePlayers().forEach(p -> playerPreferencesService.unloadPlayer(p.getUniqueId()));
@@ -594,5 +732,19 @@ public final class AnarchyCore extends JavaPlugin {
         }
         playerPreferencesService = null;
         configManager = null;
+        escMenuRuntime = null;
+        leaderboardDialog = null;
+        if (clansQueryProvider != null) {
+            clansQueryProvider.shutdown();
+            clansQueryProvider = null;
+        }
+        if (economyQueryProvider != null) {
+            economyQueryProvider.shutdown();
+            economyQueryProvider = null;
+        }
+        if (economyMoneyProvider != null) {
+            economyMoneyProvider.shutdown();
+            economyMoneyProvider = null;
+        }
     }
 }
