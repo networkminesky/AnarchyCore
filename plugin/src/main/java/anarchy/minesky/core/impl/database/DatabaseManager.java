@@ -371,6 +371,74 @@ public final class DatabaseManager {
                             """);
                 } catch (SQLException ignored) {
                 }
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_stats (
+                          uuid CHAR(36) NOT NULL PRIMARY KEY,
+                          player_name VARCHAR(16) NOT NULL,
+                          kills INT NOT NULL DEFAULT 0,
+                          deaths INT NOT NULL DEFAULT 0,
+                          playtime_seconds BIGINT NOT NULL DEFAULT 0,
+                          blocks_placed INT NOT NULL DEFAULT 0,
+                          blocks_broken INT NOT NULL DEFAULT 0,
+                          mobs_killed INT NOT NULL DEFAULT 0,
+                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                          INDEX idx_stats_kills (kills DESC),
+                          INDEX idx_stats_deaths (deaths DESC),
+                          INDEX idx_stats_playtime (playtime_seconds DESC),
+                          INDEX idx_stats_blocks_placed (blocks_placed DESC),
+                          INDEX idx_stats_blocks_broken (blocks_broken DESC),
+                          INDEX idx_stats_mobs_killed (mobs_killed DESC)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_stats_weekly (
+                          uuid CHAR(36) NOT NULL,
+                          week_key VARCHAR(12) NOT NULL,
+                          player_name VARCHAR(16) NOT NULL,
+                          baseline_money DOUBLE NOT NULL DEFAULT 0,
+                          baseline_shards DOUBLE NOT NULL DEFAULT 0,
+                          baseline_kills INT NOT NULL DEFAULT 0,
+                          baseline_deaths INT NOT NULL DEFAULT 0,
+                          baseline_playtime_seconds BIGINT NOT NULL DEFAULT 0,
+                          baseline_blocks_placed INT NOT NULL DEFAULT 0,
+                          baseline_blocks_broken INT NOT NULL DEFAULT 0,
+                          baseline_mobs_killed INT NOT NULL DEFAULT 0,
+                          score_money DOUBLE NOT NULL DEFAULT 0,
+                          score_shards DOUBLE NOT NULL DEFAULT 0,
+                          score_kills INT NOT NULL DEFAULT 0,
+                          score_deaths INT NOT NULL DEFAULT 0,
+                          score_playtime_seconds BIGINT NOT NULL DEFAULT 0,
+                          score_blocks_placed INT NOT NULL DEFAULT 0,
+                          score_blocks_broken INT NOT NULL DEFAULT 0,
+                          score_mobs_killed INT NOT NULL DEFAULT 0,
+                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                          PRIMARY KEY (uuid, week_key),
+                          INDEX idx_weekly_money (week_key, score_money),
+                          INDEX idx_weekly_shards (week_key, score_shards),
+                          INDEX idx_weekly_kills (week_key, score_kills),
+                          INDEX idx_weekly_deaths (week_key, score_deaths),
+                          INDEX idx_weekly_playtime (week_key, score_playtime_seconds),
+                          INDEX idx_weekly_blocks_placed (week_key, score_blocks_placed),
+                          INDEX idx_weekly_blocks_broken (week_key, score_blocks_broken),
+                          INDEX idx_weekly_mobs (week_key, score_mobs_killed)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS ac_player_presence (
+                          uuid CHAR(36) NOT NULL PRIMARY KEY,
+                          player_name VARCHAR(16) NOT NULL,
+                          last_join_at BIGINT NULL,
+                          last_quit_at BIGINT NULL,
+                          world VARCHAR(64) NULL,
+                          x DOUBLE NULL,
+                          y DOUBLE NULL,
+                          z DOUBLE NULL,
+                          yaw FLOAT NULL,
+                          pitch FLOAT NULL,
+                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                          INDEX idx_presence_player_name (player_name)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """);
             } catch (SQLException e) {
                 plugin.getLogger().severe("Falha na migração SQL: " + e.getMessage());
             }

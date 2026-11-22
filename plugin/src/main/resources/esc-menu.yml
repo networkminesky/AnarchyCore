@@ -1,0 +1,155 @@
+# Menu ESC (pause) e comando /menu do AnarchyCore.
+# Alterações nos botões, colunas, largura ou rótulo do ESC exigem REINÍCIO do servidor
+# (o diálogo anarchycore:player_config é registrado no Bootstrap / Registry do Paper).
+# Seção flows.* vale para /menu e diálogos em runtime (recomendado reiniciar após mudanças nos botões).
+
+pause:
+  label: "&fConfigurações"
+  sprite: end_crystal
+
+hub:
+  title: "&fMineSky Anarchy"
+  columns: 2
+  button-width: 160
+  exit:
+    enabled: false
+    label: "&7Voltar"
+    width: 160
+
+command:
+  enabled: true
+  name: menu
+  aliases:
+    - painel
+
+flows:
+  selector:
+    page-size: 24
+    button-width: 160
+  tpa:
+    command-to: tpa
+    command-here: tpaqui
+  pay:
+    min: 0.01
+    max: 10000000000
+    input-key: valor_pix
+    fallback-command: pay
+    presets:
+      - amount: 10
+        label: "&a$ &f10"
+      - amount: 100
+        label: "&a$ &f100"
+      - amount: 1000
+        label: "&a$ &f1.000"
+      - amount: 10000
+        label: "&a$ &f10.000"
+
+buttons:
+  - id: homes
+    label: "&fHomes"
+    sprite: oak_door
+    type: COMMAND
+    command: home
+
+  - id: rtp
+    label: "&fRTP"
+    sprite: grass_block
+    type: COMMAND
+    command: rtp
+
+  - id: warps
+    label: "&fWarps"
+    sprite: ender_pearl
+    type: COMMAND
+    command: warp
+
+  - id: rtpfila
+    label: "&fRTP Fila"
+    sprite: iron_sword
+    type: COMMAND
+    command: rtpfila
+
+  - id: tpa
+    label: "&fTPA"
+    sprite: ender_eye
+    type: CUSTOM
+    handler: tpa
+
+  - id: friends
+    label: "&fAmigos"
+    sprite: name_tag
+    type: CUSTOM
+    handler: friends
+    permission: anarchycore.friends
+
+  - id: shop
+    label: "&fLoja"
+    sprite: emerald
+    type: COMMAND
+    command: shop
+
+  - id: auction
+    label: "&fLeilão"
+    sprite: gold_ingot
+    type: COMMAND
+    command: ah
+
+  - id: shardshop
+    label: "&fLoja de Fragmentos"
+    sprite: amethyst_shard
+    type: COMMAND
+    command: shardshop
+
+  - id: pix
+    label: "&fPIX / Pagar"
+    sprite: gold_nugget
+    type: CUSTOM
+    handler: pay
+
+  - id: kits
+    label: "&fKits"
+    sprite: diamond_chestplate
+    type: COMMAND
+    command: kits
+
+  - id: vault
+    label: "&fBaús"
+    sprite: chest_minecart
+    type: COMMAND
+    command: baus
+
+  - id: stats
+    label: "&fStats"
+    sprite: spyglass
+    type: CUSTOM
+    handler: stats
+
+  - id: leaderboards
+    label: "&fLeaderboards"
+    sprite: nether_star
+    type: CUSTOM
+    handler: leaderboards
+
+  - id: convite
+    label: "&fConvites"
+    sprite: experience_bottle
+    type: CUSTOM
+    handler: convite
+
+  - id: rules
+    label: "&fRegras"
+    sprite: writable_book
+    type: COMMAND
+    command: regras
+
+  - id: config
+    label: "&fConfigurações"
+    sprite: comparator
+    type: CUSTOM
+    handler: config
+
+  - id: discord
+    label: "&fDiscord"
+    sprite: paper
+    type: COMMAND
+    command: discord

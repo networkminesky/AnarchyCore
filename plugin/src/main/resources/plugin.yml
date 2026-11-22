@@ -28,6 +28,9 @@ permissions:
   anarchycore.tempojogo.others:
     description: Permite ver o tempo de jogo de outros jogadores com /tempojogo
     default: op
+  anarchycore.stats.others:
+    description: Permite ver o perfil de outros jogadores com /stats <jogador>
+    default: op
   anarchycore.reload:
     description: Permite recarregar config.yml e messages.yml com /anarchycore reload
     default: op
@@ -115,12 +118,21 @@ permissions:
   anarchycore.convite.admin:
     description: Comandos admin do sistema de convites (/anarchycore convite ...)
     default: op
-<<<<<<< HEAD
   anarchycore.blocks.admin:
     description: Comandos admin de blocos interativos (/anarchycore blocks ...)
     default: op
-=======
   anarchycore.referral.customcode:
     description: Permite definir um código de convite personalizado (/convite definir)
     default: false
->>>>>>> 33a7b2edcedc647cec535eb6313960bd6a71b353
+  anarchycore.menu:
+    description: Abre o hub do servidor (/menu) — equivalente ao menu ESC
+    default: true
+  anarchycore.seen:
+    description: Consulta quando um jogador entrou ou saiu (/seen)
+    default: true
+  anarchycore.seen.vanish:
+    description: Vê jogadores em vanish como online no /seen e no tab-complete
+    default: op
+  anarchycore.otp:
+    description: Teleporta até o último logout de um jogador offline (/otp)
+    default: op

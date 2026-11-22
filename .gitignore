@@ -1,6 +1,7 @@
 # Project exclude paths
 /.gradle/
 /plugin/.gradle/
+/gradle-local.properties
 /api/.gradle/
 /build/
 /api/build/

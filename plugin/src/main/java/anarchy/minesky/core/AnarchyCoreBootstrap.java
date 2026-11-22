@@ -1,23 +1,19 @@
 package anarchy.minesky.core;
 
-import anarchy.minesky.core.api.text.DialogComponentUtils;
+import anarchy.minesky.core.impl.escmenu.EscMenuConfigLoader;
+import anarchy.minesky.core.impl.escmenu.EscMenuDefinition;
+import anarchy.minesky.core.impl.escmenu.EscMenuDialogFactory;
 import io.papermc.paper.dialog.Dialog;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.TypedKey;
-import io.papermc.paper.registry.data.dialog.ActionButton;
-import io.papermc.paper.registry.data.dialog.DialogBase;
-import io.papermc.paper.registry.data.dialog.action.DialogAction;
-import io.papermc.paper.registry.data.dialog.type.DialogType;
 import io.papermc.paper.registry.event.RegistryEvents;
 import io.papermc.paper.registry.keys.DialogKeys;
 import io.papermc.paper.registry.keys.tags.DialogTagKeys;
 import io.papermc.paper.tag.PostFlattenTagRegistrar;
 import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,35 +24,21 @@ import java.nio.file.Path;
 import java.util.Set;
 
 /**
- * Registro do botão {@code /config} no menu ESC (requer {@code paper-plugin.yml}).
+ * Registro do hub ESC {@code anarchycore:player_config} (requer {@code paper-plugin.yml}).
  */
 public final class AnarchyCoreBootstrap implements PluginBootstrap {
 
     public static final Key PLAYER_CONFIG_DIALOG = Key.key("anarchycore", "player_config");
     public static final TypedKey<Dialog> PLAYER_CONFIG_DIALOG_KEY = DialogKeys.create(PLAYER_CONFIG_DIALOG);
-    public static final Key OPEN_CONFIG_KEY = Key.key("anarchycore", "config/open");
-
-    /** Sem {@code Material} — o bootstrap roda antes dos registries Bukkit. */
-    private static final Component ESC_MENU_LABEL =
-            DialogComponentUtils.itemSpriteLabel("end_crystal", "Configurações");
 
     @Override
     public void bootstrap(BootstrapContext context) {
-        context.getLogger().info("[AnarchyCore] Bootstrap — registrando menu ESC (/config).");
+        context.getLogger().info("[AnarchyCore] Bootstrap — registrando hub ESC (esc-menu.yml).");
 
+        final EscMenuDefinition menuDefinition = loadEscMenu(context);
         context.getLifecycleManager().registerEventHandler(RegistryEvents.DIALOG.compose(), event -> event.registry().register(
                 PLAYER_CONFIG_DIALOG_KEY,
-                builder -> builder
-                        .base(DialogBase.builder(ESC_MENU_LABEL)
-                                .externalTitle(ESC_MENU_LABEL)
-                                .afterAction(DialogBase.DialogAfterAction.WAIT_FOR_RESPONSE)
-                                .build())
-                        .type(DialogType.notice(
-                                ActionButton.builder(Component.text("Abrir menu", NamedTextColor.GREEN))
-                                        .width(280)
-                                        .action(DialogAction.customClick(OPEN_CONFIG_KEY, null))
-                                        .build()
-                        ))
+                builder -> EscMenuDialogFactory.applyDialog(builder, menuDefinition)
         ));
 
         context.getLifecycleManager().registerEventHandler(
@@ -65,7 +47,7 @@ public final class AnarchyCoreBootstrap implements PluginBootstrap {
                     PostFlattenTagRegistrar<Dialog> registrar = event.registrar();
                     registrar.setTag(DialogTagKeys.PAUSE_SCREEN_ADDITIONS, Set.of(PLAYER_CONFIG_DIALOG_KEY));
                     context.getLogger().info(
-                            "[AnarchyCore] Tag pause_screen_additions → anarchycore:player_config (API).");
+                            "[AnarchyCore] Tag pause_screen_additions → anarchycore:player_config (hub 2 colunas).");
                 });
 
         context.getLifecycleManager().registerEventHandler(LifecycleEvents.DATAPACK_DISCOVERY, event -> {
@@ -82,6 +64,26 @@ public final class AnarchyCoreBootstrap implements PluginBootstrap {
                 throw new RuntimeException("Falha ao registrar datapack do menu ESC", e);
             }
         });
+    }
+
+    private static EscMenuDefinition loadEscMenu(BootstrapContext context) {
+        try {
+            Path dataDirectory = context.getDataDirectory();
+            EscMenuDefinition loaded = EscMenuConfigLoader.loadFromDataDirectory(dataDirectory);
+            context.getLogger().info(
+                    "[AnarchyCore] esc-menu.yml carregado ({} botões, {} colunas).",
+                    loaded.buttons().size(),
+                    loaded.columns());
+            return loaded;
+        } catch (IOException | RuntimeException error) {
+            context.getLogger().error(
+                    "[AnarchyCore] Falha ao carregar esc-menu.yml; usando padrão embutido.", error);
+            try {
+                return EscMenuConfigLoader.loadFromResourceOnly();
+            } catch (IOException fallbackError) {
+                throw new RuntimeException("esc-menu.yml embutido ausente", fallbackError);
+            }
+        }
     }
 
     private static URI resolveEscDatapackUri(BootstrapContext context) throws URISyntaxException, IOException {

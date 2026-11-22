@@ -121,6 +121,11 @@ homes:
 #             MariaDB / preferências de jogador
 # =========================================================
 
+leaderboards:
+  weekly:
+    # Fuso para a chave semanal (domingo 00:00, ex.: 2026-11-22), alinhada ao AnarchyClans.
+    zone: "America/Sao_Paulo"
+
 database:
   enabled: true
   jdbc-url: "jdbc:mariadb://127.0.0.1:3306/anarchycore?useUnicode=true&characterEncoding=utf8"

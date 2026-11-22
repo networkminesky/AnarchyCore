@@ -134,6 +134,10 @@ public final class ReferralManager {
     }
 
     public void showOrCreateCode(Player player) {
+        openConviteMenu(player);
+    }
+
+    public void openConviteMenu(Player player) {
         try {
             if (!isEnabled()) {
                 sendError(player, "referral.error.disabled");
@@ -143,20 +147,33 @@ public final class ReferralManager {
                 sendError(player, "referral.error.blocked");
                 return;
             }
-            String code = repository.getOrCreateCode(
-                    player.getUniqueId(), codeGenerator, settings.maxCodeGenerationAttempts());
-            if (code == null) {
-                sendError(player, "referral.error.code-generation");
-                return;
-            }
-            deliver(player, () -> feedback.send(
-                    player,
-                    messages.component("referral.code.self", "code", code),
-                    FeedbackPriority.NORMAL,
-                    true,
-                    UiSoundMode.SUCCESS));
+            UUID uuid = player.getUniqueId();
+            qualification.flush(uuid);
+            plugin.getServer().getGlobalRegionScheduler().run(plugin, global -> {
+                String code = repository.getOrCreateCode(uuid, codeGenerator, settings.maxCodeGenerationAttempts());
+                if (code == null) {
+                    deliver(player, () -> sendError(player, "referral.error.code-generation"));
+                    return;
+                }
+                boolean hasRedeemed = repository.hasInviteeEverRedeemed(uuid);
+                ReferralRecord asInvitee = repository.getByInvitee(uuid);
+                int validCount = ReferralMenuUi.countValidReferrals(repository.listByReferrer(uuid));
+                ReferralMenuUi.ReferralMenuSnapshot loaded = new ReferralMenuUi.ReferralMenuSnapshot(
+                        code,
+                        hasRedeemed,
+                        asInvitee,
+                        validCount,
+                        settings.customCodeEnabled(),
+                        player.hasPermission(customCodePermission()));
+                player.getScheduler().run(plugin, entity -> {
+                    if (!plugin.isEnabled() || !player.isOnline()) {
+                        return;
+                    }
+                    ReferralConviteDialog.open(player, this, feedback, messages, loaded);
+                }, null);
+            });
         } catch (Throwable error) {
-            fail(player, "showOrCreateCode", error);
+            fail(player, "openConviteMenu", error);
         }
     }
 

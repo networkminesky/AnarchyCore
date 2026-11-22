@@ -34,6 +34,24 @@ playtime:
   self: "&fSeu tempo de jogo: &e⌚ {time}"
   other: "&fTempo de jogo de &e{target}&7: &e⌚ {time}"
 
+stats:
+  never-joined: "&cEste jogador nunca entrou no servidor."
+
+seen:
+  usage: "&cUso: /seen <jogador>"
+  online: "&a{target} &festá online há &e{duration}&f nesta sessão."
+  offline: "&c{target} &festá offline há &e{duration}&f (última vez: &7{when}&f)."
+  never-joined: "&c{target} nunca entrou neste servidor."
+  error: "&cNão foi possível consultar a presença deste jogador."
+
+otp:
+  usage: "&cUso: /otp <jogador>"
+  online: "&aTeleportado até &f{target}&a (online) em &f{world}&a &7{&f{x}&7, &f{y}&7, &f{z}&7}."
+  offline: "&aTeleportado para o último logout de &f{target}&a em &f{world}&a &7{&f{x}&7, &f{y}&7, &f{z}&7}."
+  no-location: "&cSem local de logout salvo para &f{target}&c."
+  world-missing: "&cMundo &f{world}&c não está carregado."
+  failed: "&cTeleporte falhou."
+
 heal:
   self: "&#7BED9FVida restaurada!"
   other-executor: "&#7BED9FVida de &#FFFFFF{target} &#7BED9Frestaurada!"
@@ -404,6 +422,17 @@ referral:
     definir: "&cUso: /convite definir <codigo>"
   code:
     self: "&#7BED9FSeu código de convite: &f&l{code}"
+  menu:
+    title: "&#7BED9FConvites"
+    copy:
+      ok: "&#7BED9FCódigo enviado — clique no chat para copiar."
+      bedrock: "&#7BED9FSeu código: &f&l{code}"
+    redeem:
+      title: "&#FFD166Usar código de amigo"
+      body: "&7Digite o código que você recebeu."
+    custom:
+      title: "&#7BED9FCustomizar código"
+      body: "&73 a 16 caracteres: A-Z, 0-9, _ ou -"
   status:
     header: "&#7BED9FConvite"
     code: "&7Seu código: &f{code}"

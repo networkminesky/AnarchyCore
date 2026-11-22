@@ -4,14 +4,22 @@ public final class PlaytimeFormat {
 
     private PlaytimeFormat() {}
 
+    public static String fromDurationMillis(long millis) {
+        long totalSeconds = Math.max(0L, millis / 1000L);
+        return formatSeconds(totalSeconds);
+    }
+
     /** {@link org.bukkit.Statistic#PLAY_ONE_MINUTE} — tempo de jogo em ticks (20 ticks = 1s). */
     public static String fromPlayTicks(int ticks) {
         long totalSeconds = Math.max(0L, ticks / 20L);
+        return formatSeconds(totalSeconds);
+    }
+
+    private static String formatSeconds(long totalSeconds) {
         long days = totalSeconds / 86_400L;
         long hours = (totalSeconds % 86_400L) / 3_600L;
         long minutes = (totalSeconds % 3_600L) / 60L;
         long seconds = totalSeconds % 60L;
-
         StringBuilder out = new StringBuilder();
         appendUnit(out, days, 'd');
         appendUnit(out, hours, 'h');
