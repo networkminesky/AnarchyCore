@@ -42,6 +42,9 @@ public final class AnarchyClansQueryProvider implements Listener {
     private final Logger logger;
     private final CombatStatsRepository legacyCombat;
     private volatile Binding binding;
+    private volatile Boolean testClansAvailable;
+    private volatile List<LeaderboardLine> testWeeklyKillsTop;
+    private volatile List<LeaderboardLine> testWeeklyDeathsTop;
 
     public AnarchyClansQueryProvider(Plugin plugin, CombatStatsRepository legacyCombat) {
         this.plugin = plugin;
@@ -75,7 +78,28 @@ public final class AnarchyClansQueryProvider implements Listener {
         clearBinding();
     }
 
+    public void setTestClansAvailableForTests(boolean available) {
+        testClansAvailable = available;
+    }
+
+    public void setTestWeeklyKillsTopForTests(List<LeaderboardLine> top) {
+        testWeeklyKillsTop = top != null ? List.copyOf(top) : null;
+    }
+
+    public void setTestWeeklyDeathsTopForTests(List<LeaderboardLine> top) {
+        testWeeklyDeathsTop = top != null ? List.copyOf(top) : null;
+    }
+
+    public void clearTestOverridesForTests() {
+        testClansAvailable = null;
+        testWeeklyKillsTop = null;
+        testWeeklyDeathsTop = null;
+    }
+
     public boolean isClansAvailable() {
+        if (testClansAvailable != null) {
+            return testClansAvailable;
+        }
         Binding current = binding;
         if (current == null || !current.matchesEnabledPlugin()) {
             return false;
@@ -130,11 +154,25 @@ public final class AnarchyClansQueryProvider implements Listener {
     }
 
     public List<LeaderboardLine> topWeeklyKills(int limit) {
+        if (testWeeklyKillsTop != null) {
+            return sliceTop(testWeeklyKillsTop, limit);
+        }
         return topBoard("WEEKLY_KILLS", limit);
     }
 
     public List<LeaderboardLine> topWeeklyDeaths(int limit) {
+        if (testWeeklyDeathsTop != null) {
+            return sliceTop(testWeeklyDeathsTop, limit);
+        }
         return topBoard("WEEKLY_DEATHS", limit);
+    }
+
+    private static List<LeaderboardLine> sliceTop(List<LeaderboardLine> source, int limit) {
+        if (source == null || source.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        int max = Math.min(limit, source.size());
+        return source.subList(0, max);
     }
 
     private static final int RANK_SCAN_LIMIT = 200;
@@ -145,6 +183,68 @@ public final class AnarchyClansQueryProvider implements Listener {
 
     public int rankDeaths(UUID viewerId, int value) {
         return rankInTop(topDeaths(RANK_SCAN_LIMIT), viewerId, value);
+    }
+
+    public int rankWeeklyKills(UUID viewerId, int value) {
+        return rankInTop(topWeeklyKills(RANK_SCAN_LIMIT), viewerId, value);
+    }
+
+    public int rankWeeklyDeaths(UUID viewerId, int value) {
+        return rankInTop(topWeeklyDeaths(RANK_SCAN_LIMIT), viewerId, value);
+    }
+
+    public int weeklyKillsSync(UUID uuid) {
+        if (uuid == null) {
+            return 0;
+        }
+        if (isClansAvailable()) {
+            Binding current = binding;
+            if (current != null && current.getWeeklyKillsSync != null) {
+                try {
+                    return Math.max(0, (int) current.getWeeklyKillsSync.invoke(current.playerData(), uuid));
+                } catch (Throwable error) {
+                    logger.log(Level.FINE, "[Combat] getWeeklyKillsSync falhou uuid=" + uuid, error);
+                }
+            }
+            int fromTop = valueFromTop(topWeeklyKills(RANK_SCAN_LIMIT), uuid);
+            if (fromTop >= 0) {
+                return fromTop;
+            }
+        }
+        return 0;
+    }
+
+    public int weeklyDeathsSync(UUID uuid) {
+        if (uuid == null) {
+            return 0;
+        }
+        if (isClansAvailable()) {
+            Binding current = binding;
+            if (current != null && current.getWeeklyDeathsSync != null) {
+                try {
+                    return Math.max(0, (int) current.getWeeklyDeathsSync.invoke(current.playerData(), uuid));
+                } catch (Throwable error) {
+                    logger.log(Level.FINE, "[Combat] getWeeklyDeathsSync falhou uuid=" + uuid, error);
+                }
+            }
+            int fromTop = valueFromTop(topWeeklyDeaths(RANK_SCAN_LIMIT), uuid);
+            if (fromTop >= 0) {
+                return fromTop;
+            }
+        }
+        return 0;
+    }
+
+    private static int valueFromTop(List<LeaderboardLine> top, UUID uuid) {
+        if (top == null || uuid == null) {
+            return -1;
+        }
+        for (LeaderboardLine line : top) {
+            if (uuid.equals(line.uuid())) {
+                return (int) line.value();
+            }
+        }
+        return -1;
     }
 
     private int rankInTop(List<LeaderboardLine> top, UUID viewerId, int value) {
@@ -271,6 +371,8 @@ public final class AnarchyClansQueryProvider implements Listener {
             MethodHandle getDeaths = lookup.unreflect(managerClass.getMethod("getDeaths", UUID.class, Consumer.class));
             MethodHandle getKillsSync = lookup.unreflect(managerClass.getMethod("getKillsSync", UUID.class));
             MethodHandle getDeathsSync = lookup.unreflect(managerClass.getMethod("getDeathsSync", UUID.class));
+            MethodHandle getWeeklyKillsSync = optionalHandle(lookup, managerClass, "getWeeklyKillsSync", UUID.class);
+            MethodHandle getWeeklyDeathsSync = optionalHandle(lookup, managerClass, "getWeeklyDeathsSync", UUID.class);
             MethodHandle getLeaderboardCache = lookup.unreflect(managerClass.getMethod("getLeaderboardCache"));
             MethodHandle entryNickname = lookup.unreflect(entryClass.getMethod("nickname"));
             MethodHandle entryValue = lookup.unreflect(entryClass.getMethod("value"));
@@ -288,6 +390,8 @@ public final class AnarchyClansQueryProvider implements Listener {
                     getDeaths,
                     getKillsSync,
                     getDeathsSync,
+                    getWeeklyKillsSync,
+                    getWeeklyDeathsSync,
                     getLeaderboardCache,
                     cacheFieldGetter,
                     enumClass,
@@ -305,6 +409,15 @@ public final class AnarchyClansQueryProvider implements Listener {
         binding = null;
     }
 
+    private static MethodHandle optionalHandle(
+            MethodHandles.Lookup lookup, Class<?> type, String method, Class<?>... params) {
+        try {
+            return lookup.unreflect(type.getMethod(method, params));
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+            return null;
+        }
+    }
+
     private record Binding(
             Plugin plugin,
             MethodHandle getPlayerData,
@@ -312,6 +425,8 @@ public final class AnarchyClansQueryProvider implements Listener {
             MethodHandle getDeaths,
             MethodHandle getKillsSync,
             MethodHandle getDeathsSync,
+            MethodHandle getWeeklyKillsSync,
+            MethodHandle getWeeklyDeathsSync,
             MethodHandle getLeaderboardCache,
             MethodHandle cacheFieldGetter,
             Class<? extends Enum<?>> boardClass,

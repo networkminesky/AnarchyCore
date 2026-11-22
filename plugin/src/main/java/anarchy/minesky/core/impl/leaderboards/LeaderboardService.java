@@ -28,6 +28,8 @@ public final class LeaderboardService {
     @Deprecated
     public static final int TOP_LIMIT = TOP_PREVIEW;
     public static final long CACHE_TTL_MS = 30_000L;
+    /** Cache mais curto no semanal de abates/mortes (Clans invalida a cada kill/death). */
+    public static final long WEEKLY_COMBAT_CACHE_TTL_MS = 15_000L;
 
     private final Plugin plugin;
     private final PlayerStatsService stats;
@@ -117,9 +119,15 @@ public final class LeaderboardService {
         }
         loaded = withPeriod(loaded, period);
         if (loaded.ok() && limit >= TOP_FULL && !loaded.top().isEmpty()) {
-            cache.put(key, new CachedBoard(loaded, now + CACHE_TTL_MS));
+            long ttl = weeklyCombatCache(category, period) ? WEEKLY_COMBAT_CACHE_TTL_MS : CACHE_TTL_MS;
+            cache.put(key, new CachedBoard(loaded, now + ttl));
         }
         return loaded;
+    }
+
+    private static boolean weeklyCombatCache(LeaderboardCategory category, LeaderboardPeriod period) {
+        return period == LeaderboardPeriod.WEEKLY
+                && (category == LeaderboardCategory.KILLS || category == LeaderboardCategory.DEATHS);
     }
 
     private static LeaderboardResult withPeriod(LeaderboardResult loaded, LeaderboardPeriod period) {
@@ -149,19 +157,38 @@ public final class LeaderboardService {
             return LeaderboardResult.unavailable(
                     category, LeaderboardPeriod.ALL_TIME, "Ranking semanal indisponível para esta categoria");
         }
+        if (category == LeaderboardCategory.KILLS || category == LeaderboardCategory.DEATHS) {
+            return loadWeeklyCombat(category, viewerId, limit);
+        }
+        return loadWeeklyFromRepository(category, viewerId, limit);
+    }
+
+  /** Abates/mortes semanais: AnarchyClans ({@code WEEKLY_KILLS}/{@code WEEKLY_DEATHS}) como fonte primária. */
+    private LeaderboardResult loadWeeklyCombat(LeaderboardCategory category, UUID viewerId, int limit) {
+        boolean kills = category == LeaderboardCategory.KILLS;
+        if (combat.isClansAvailable()) {
+            List<LeaderboardLine> top = kills ? combat.topWeeklyKills(limit) : combat.topWeeklyDeaths(limit);
+            int selfValue = kills ? combat.weeklyKillsSync(viewerId) : combat.weeklyDeathsSync(viewerId);
+            int rank = kills ? combat.rankWeeklyKills(viewerId, selfValue) : combat.rankWeeklyDeaths(viewerId, selfValue);
+            if (rank < 0) {
+                rank = LeaderboardFormatter.viewerRankOrMinusOne(top, viewerId);
+            }
+            return new LeaderboardResult(category, LeaderboardPeriod.WEEKLY, top, rank, selfValue, null);
+        }
+        if (!weekly.isActive()) {
+            return LeaderboardResult.unavailable(
+                    category, LeaderboardPeriod.WEEKLY, "Ranking semanal indisponível (AnarchyClans / MariaDB)");
+        }
+        return loadWeeklyFromRepository(category, viewerId, limit);
+    }
+
+    private LeaderboardResult loadWeeklyFromRepository(LeaderboardCategory category, UUID viewerId, int limit) {
         if (!weekly.isActive()) {
             return LeaderboardResult.unavailable(category, LeaderboardPeriod.WEEKLY, "Ranking semanal indisponível (MariaDB)");
         }
         String weekKey = settings.currentWeekKey();
         ScoreColumn column = ScoreColumn.forCategory(category);
         List<LeaderboardLine> top = weekly.top(weekKey, column, limit);
-        if (top.isEmpty() && (category == LeaderboardCategory.KILLS || category == LeaderboardCategory.DEATHS)) {
-            boolean kills = category == LeaderboardCategory.KILLS;
-            List<LeaderboardLine> clans = kills ? combat.topWeeklyKills(limit) : combat.topWeeklyDeaths(limit);
-            if (!clans.isEmpty()) {
-                top = clans;
-            }
-        }
         double selfValue = 0;
         int rank = -1;
         var row = weekly.find(viewerId, weekKey).orElse(null);
@@ -239,6 +266,10 @@ public final class LeaderboardService {
         long selfValue = self != null ? column.readValue(self) : 0L;
         int rank = self != null ? stats.repository().rank(column, selfValue) : -1;
         return new LeaderboardResult(category, LeaderboardPeriod.ALL_TIME, lines, rank, selfValue, null);
+    }
+
+    public LeaderboardResult loadWeeklyForTests(LeaderboardCategory category, UUID viewerId, int limit) {
+        return loadWeekly(category, viewerId, limit);
     }
 
     public void clearCacheForTests() {

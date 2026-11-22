@@ -123,7 +123,7 @@ homes:
 
 leaderboards:
   weekly:
-    # Fuso ISO para a chave da semana (ex.: 2026-W47) do ranking semanal.
+    # Fuso para a chave semanal (domingo 00:00, ex.: 2026-11-22), alinhada ao AnarchyClans.
     zone: "America/Sao_Paulo"
 
 database:

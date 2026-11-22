@@ -37,10 +37,10 @@ class LeaderboardPeriodUiTest {
     }
 
     @Test
-    void weekKeyChangesAcrossIsoWeeks() {
+    void weekKeyUsesSundayDateFormat() {
         String w1 = LeaderboardWeekKey.current(ZoneId.of("America/Sao_Paulo"));
         assertNotEquals("", w1);
-        assertTrue(w1.matches("\\d{4}-W\\d{2}"));
+        assertTrue(w1.matches("\\d{4}-\\d{2}-\\d{2}"));
     }
 
     @Test

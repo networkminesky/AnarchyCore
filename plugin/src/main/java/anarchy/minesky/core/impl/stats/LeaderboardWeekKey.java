@@ -1,22 +1,29 @@
 package anarchy.minesky.core.impl.stats;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.WeekFields;
-import java.util.Locale;
+import java.time.temporal.TemporalAdjusters;
 
-/** Chave ISO de semana ({@code 2026-W47}) no fuso configurado. */
+/**
+ * Chave da semana no fuso configurado: data do domingo de início ({@code 2026-11-22}),
+ * alinhada ao AnarchyClans (virada domingo 00:00).
+ */
 public final class LeaderboardWeekKey {
 
     private LeaderboardWeekKey() {}
 
     public static String current(ZoneId zone) {
         ZoneId safe = zone != null ? zone : ZoneId.of("America/Sao_Paulo");
-        LocalDate today = LocalDate.now(safe);
-        WeekFields fields = WeekFields.of(Locale.ROOT);
-        int week = today.get(fields.weekOfWeekBasedYear());
-        int year = today.get(fields.weekBasedYear());
-        return String.format(Locale.ROOT, "%d-W%02d", year, week);
+        return forDate(LocalDate.now(safe), safe);
+    }
+
+    public static String forDate(LocalDate date, ZoneId zone) {
+        if (date == null) {
+            return current(zone);
+        }
+        LocalDate sunday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
+        return sunday.toString();
     }
 
     public static ZoneId zone(String configured) {
