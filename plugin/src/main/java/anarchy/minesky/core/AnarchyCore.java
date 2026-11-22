@@ -232,7 +232,7 @@ public final class AnarchyCore extends JavaPlugin {
                 configManager);
 
         this.warpManager = new WarpManager(this, messagesManager, feedbackManager, warpSettings, warpStorage);
-        getServer().getPluginManager().registerEvents(new WarpListener(warpManager), this);
+        getServer().getPluginManager().registerEvents(new WarpListener(warpManager, warpManager.spawnHandler()), this);
 
         this.homeSettings = new HomeSettings(this);
         this.homeRepository = new HomeRepository(this, databaseManager, homeSettings);

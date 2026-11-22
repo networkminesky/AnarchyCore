@@ -36,6 +36,7 @@ public final class WarpManager {
 
     private final Map<UUID, ActiveTeleport> activeTeleports = new ConcurrentHashMap<>();
     private final Map<UUID, Material> editorIconSelection = new ConcurrentHashMap<>();
+    private final WarpSpawnHandler spawnHandler;
 
     public WarpManager(
             Plugin plugin,
@@ -48,6 +49,11 @@ public final class WarpManager {
         this.feedback = feedback;
         this.settings = settings;
         this.storage = storage;
+        this.spawnHandler = new WarpSpawnHandler(plugin, this);
+    }
+
+    public WarpSpawnHandler spawnHandler() {
+        return spawnHandler;
     }
 
     public WarpStorage storage() {
@@ -71,6 +77,7 @@ public final class WarpManager {
     public void handleQuit(UUID playerId) {
         cancelTeleport(playerId, "warps.teleport-cancelled-quit");
         editorIconSelection.remove(playerId);
+        spawnHandler.handleQuit(playerId);
     }
 
     public void openWarpList(Player player) {
