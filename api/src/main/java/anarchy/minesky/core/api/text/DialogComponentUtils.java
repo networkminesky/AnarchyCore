@@ -52,6 +52,48 @@ public final class DialogComponentUtils {
             Map.entry("polished_basalt", "blocks:block/polished_basalt_side"),
             Map.entry("hay_block", "blocks:block/hay_block_side"),
             Map.entry("bone_block", "blocks:block/bone_block_side"),
+            Map.entry("compass", "items:item/compass_20"),
+            Map.entry("barrier", "items:item/barrier"),
+            Map.entry("crossbow", "items:item/crossbow_arrow"),
+            Map.entry("ochre_froglight", "blocks:block/ochre_froglight_side"),
+            Map.entry("pearlescent_froglight", "blocks:block/pearlescent_froglight_side"),
+            Map.entry("verdant_froglight", "blocks:block/verdant_froglight_side"),
+            Map.entry("iron_bars", "blocks:block/iron_bars"),
+            Map.entry("reinforced_deepslate", "blocks:block/reinforced_deepslate_side"),
+            Map.entry("copper_chest", "blocks:block/copper_block"),
+            Map.entry("chest", "blocks:block/oak_planks"),
+            Map.entry("anvil", "blocks:block/anvil_top"),
+            Map.entry("chipped_anvil", "blocks:block/chipped_anvil_top"),
+            Map.entry("damaged_anvil", "blocks:block/damaged_anvil_top"),
+            Map.entry("sculk_sensor", "blocks:block/sculk_sensor_side"),
+            Map.entry("dried_kelp", "blocks:block/dried_kelp_top"),
+            Map.entry("zombie_head", "items:item/zombie_spawn_egg"),
+            Map.entry("creeper_head", "items:item/creeper_spawn_egg"),
+            Map.entry("piglin_head", "items:item/piglin_spawn_egg"),
+            Map.entry("dragon_head", "items:item/ender_dragon_spawn_egg"),
+            Map.entry("player_head", "items:item/skull_banner_pattern"),
+            Map.entry("ender_chest", "items:item/ender_eye"),
+            Map.entry("pale_oak_stairs", "blocks:block/pale_oak_planks"),
+            Map.entry("smooth_red_sandstone_stairs", "blocks:block/red_standstone_top"),
+            Map.entry("smooth_sandstone_stairs", "blocks:block/standstone_top"),
+            Map.entry("flowering_azalea", "blocks:block/flowering_azalea_top"),
+                        Map.entry("white_shulker_box", "blocks:block/white_shulker_box"),
+                        Map.entry("orange_shulker_box", "blocks:block/orange_shulker_box"),
+                        Map.entry("magenta_shulker_box", "blocks:block/magenta_shulker_box"),
+                        Map.entry("light_blue_shulker_box", "blocks:block/light_blue_shulker_box"),
+                        Map.entry("yellow_shulker_box", "blocks:block/yellow_shulker_box"),
+                        Map.entry("lime_shulker_box", "blocks:block/lime_shulker_box"),
+                        Map.entry("pink_shulker_box", "blocks:block/pink_shulker_box"),
+                        Map.entry("gray_shulker_box", "blocks:block/gray_shulker_box"),
+                        Map.entry("light_gray_shulker_box", "blocks:block/light_gray_shulker_box"),
+                        Map.entry("cyan_shulker_box", "blocks:block/cyan_shulker_box"),
+                        Map.entry("purple_shulker_box", "blocks:block/purple_shulker_box"),
+                        Map.entry("blue_shulker_box", "blocks:block/blue_shulker_box"),
+                        Map.entry("brown_shulker_box", "blocks:block/brown_shulker_box"),
+                        Map.entry("green_shulker_box", "blocks:block/green_shulker_box"),
+                        Map.entry("red_shulker_box", "blocks:block/red_shulker_box"),
+                        Map.entry("black_shulker_box", "blocks:block/black_shulker_box"),
+                        Map.entry("shulker_box", "blocks:block/shulker_box"),
             Map.entry("pumpkin", "blocks:block/pumpkin_side"),
             Map.entry("melon", "blocks:block/melon_side"),
             Map.entry("daylight_detector", "blocks:block/daylight_detector_top"),
@@ -393,6 +435,12 @@ public final class DialogComponentUtils {
         }
         if (key.endsWith("_pressure_plate")) {
             return resolveBaseBlockTexture(key.substring(0, key.length() - "_pressure_plate".length()));
+        }
+        if (key.startsWith("infested_")) {
+            return resolveBaseBlockTexture(key.replace("infested_", "").trim());
+        }
+        if (key.startsWith("waxed_")) {
+            return resolveBaseBlockTexture(key.replace("waxed_", "").trim());
         }
         return null;
     }

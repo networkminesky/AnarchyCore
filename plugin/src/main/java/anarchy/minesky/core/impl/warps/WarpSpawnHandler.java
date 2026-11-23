@@ -4,8 +4,6 @@ import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.Plugin;
@@ -51,18 +49,18 @@ public final class WarpSpawnHandler {
 
   /** Caminho Folia (e reforço no Paper): definir respawn antes da tela de morte fechar. */
     public void handleDeath(Player player) {
-        if (hasValidPersonalRespawn(player)) {
-            return;
-        }
-        Optional<Location> spawn = defaultSpawnLocation();
-        if (spawn.isEmpty()) {
-            return;
-        }
-        Location destination = spawn.get().clone();
         Runnable apply = () -> {
             if (!player.isOnline()) {
                 return;
             }
+            if (hasStoredPersonalRespawn(player)) {
+                return;
+            }
+            Optional<Location> spawn = defaultSpawnLocation();
+            if (spawn.isEmpty()) {
+                return;
+            }
+            Location destination = spawn.get().clone();
             player.setRespawnLocation(destination, true);
             pendingSpawnTeleports.put(player.getUniqueId(), destination);
             scheduleFoliaRespawnFallback(player);
@@ -117,56 +115,17 @@ public final class WarpSpawnHandler {
     }
 
     /**
-     * {@link Player#getRespawnLocation()} devolve a posição onde o jogador aparece (geralmente no ar),
-     * não o bloco da cama/anchor — por isso procuramos o bloco num raio pequeno.
+     * Lê só o ponto salvo no jogador, sem carregar chunk/bloco (seguro no Folia cross-world).
+     * Cama/anchor quebrados o servidor trata na hora do respawn; {@link PlayerRespawnEvent} cobre o Paper.
      */
-    private boolean hasValidPersonalRespawn(Player player) {
-        Location validated = player.getRespawnLocation();
-        if (validated == null || validated.getWorld() == null) {
-            return false;
-        }
-        Location blockHint = player.getRespawnLocation(false);
-        if (blockHint == null) {
-            blockHint = validated;
-        }
-        return containsBedOrAnchor(blockHint);
+    private static boolean hasStoredPersonalRespawn(Player player) {
+        Location stored = player.getRespawnLocation(false);
+        return stored != null && stored.getWorld() != null;
     }
 
-    private boolean hasValidPersonalRespawn(PlayerRespawnEvent event) {
+    private static boolean hasValidPersonalRespawn(PlayerRespawnEvent event) {
         boolean hasBlockSpawn = event.isBedSpawn() || event.isAnchorSpawn();
         return hasBlockSpawn && !event.isMissingRespawnBlock();
-    }
-
-    private static boolean containsBedOrAnchor(Location origin) {
-        World world = origin.getWorld();
-        if (world == null) {
-            return false;
-        }
-        int bx = origin.getBlockX();
-        int by = origin.getBlockY();
-        int bz = origin.getBlockZ();
-        if (!world.isChunkLoaded(bx >> 4, bz >> 4)) {
-            return true;
-        }
-        for (int dy = -1; dy <= 2; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    Material type = world.getBlockAt(bx + dx, by + dy, bz + dz).getType();
-                    if (isBedOrAnchor(type)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private static boolean isBedOrAnchor(Material type) {
-        if (type.isAir()) {
-            return false;
-        }
-        String name = type.name();
-        return name.endsWith("_BED") || name.equals("RESPAWN_ANCHOR");
     }
 
     private Optional<Location> defaultSpawnLocation() {

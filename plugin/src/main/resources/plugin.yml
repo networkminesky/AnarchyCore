@@ -121,6 +121,9 @@ permissions:
   anarchycore.blocks.admin:
     description: Comandos admin de blocos interativos (/anarchycore blocks ...)
     default: op
+  anarchycore.materialpicker.operative:
+    description: Ver itens operativos (command blocks, spawn eggs, barrier, etc.) no seletor de materiais
+    default: op
   anarchycore.referral.customcode:
     description: Permite definir um código de convite personalizado (/convite definir)
     default: false

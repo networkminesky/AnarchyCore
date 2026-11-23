@@ -6,6 +6,8 @@ import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.dialogapi.inputs.TextInput;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import java.text.Normalizer;
@@ -110,7 +112,7 @@ public final class PlayerPickerDialog {
         }
 
         builder.button(DialogButton.builder()
-                .label(Component.text("Nova busca"))
+                .label(Component.text("[+] Nova busca").color(TextColor.fromHexString("#7BED9F")))
                 .width(200)
                 .onClick(p -> openSearchForm(p, title, visible, "", onNickSelected))
                 .build());

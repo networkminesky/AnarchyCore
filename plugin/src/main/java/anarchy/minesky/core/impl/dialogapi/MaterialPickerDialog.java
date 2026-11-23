@@ -10,6 +10,8 @@ import anarchy.minesky.core.impl.text.MaterialTranslationsImpl;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
@@ -22,6 +24,7 @@ public final class MaterialPickerDialog {
 
     private static final String INPUT_QUERY = "query";
     private static final int MAX_RESULTS = 48;
+    static final String PERMISSION_OPERATIVE = "anarchycore.materialpicker.operative";
 
     private final MaterialTranslationsAPI translations;
     private final MaterialSearch searchIndex;
@@ -76,7 +79,7 @@ public final class MaterialPickerDialog {
     }
 
     private void showResults(Player player, Component title, String query, Consumer<Material> onSelected) {
-        List<Material> matches = searchIndex.search(query, MAX_RESULTS);
+        List<Material> matches = searchIndex.search(query, MAX_RESULTS, player);
         if (matches.isEmpty()) {
             openSearchForm(player, title, query, onSelected);
             return;
@@ -95,7 +98,7 @@ public final class MaterialPickerDialog {
         }
 
         builder.button(DialogButton.builder()
-                .label(Component.text("Nova busca"))
+                .label(Component.text("[+] Nova busca").color(TextColor.fromHexString("#7BED9F")))
                 .width(200)
                 .onClick(p -> openSearchForm(p, title, "", onSelected))
                 .build());
@@ -118,6 +121,27 @@ public final class MaterialPickerDialog {
         }
 
         return label;
+    }
+
+    static boolean isOperativeMaterial(Material material) {
+        if (material == null) {
+            return false;
+        }
+        String name = material.name();
+        if (name.endsWith("_SPAWN_EGG")) {
+            return true;
+        }
+        return switch (material) {
+            case COMMAND_BLOCK, CHAIN_COMMAND_BLOCK, REPEATING_COMMAND_BLOCK,
+                 JIGSAW, BARRIER, STRUCTURE_BLOCK, STRUCTURE_VOID,
+                 DEBUG_STICK, LIGHT, TEST_INSTANCE_BLOCK, TEST_BLOCK,
+                 KNOWLEDGE_BOOK -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean canViewMaterial(Player player, Material material) {
+        return !isOperativeMaterial(material) || player.hasPermission(PERMISSION_OPERATIVE);
     }
 
     static final class MaterialSearch {
@@ -166,7 +190,7 @@ public final class MaterialPickerDialog {
             return displayNameCache.getOrDefault(material, MaterialTranslationsImpl.formatEnglishName(material));
         }
 
-        List<Material> search(String rawQuery, int limit) {
+        List<Material> search(String rawQuery, int limit, Player player) {
             if (rawQuery == null || rawQuery.isBlank()) {
                 return List.of();
             }
@@ -175,6 +199,7 @@ public final class MaterialPickerDialog {
 
             return entries.stream()
                     .filter(entry -> matchesAllTokens(entry, tokens))
+                    .filter(entry -> canViewMaterial(player, entry.material))
                     .sorted(Comparator
                             .<MaterialEntry>comparingInt(e -> matchScore(e, normalizedQuery))
                             .thenComparing(e -> e.localizedName, String.CASE_INSENSITIVE_ORDER))

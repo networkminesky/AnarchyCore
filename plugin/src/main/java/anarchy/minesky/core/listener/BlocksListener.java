@@ -42,12 +42,10 @@ public final class BlocksListener implements Listener {
                 to.getBlockZ());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent event) {
-        Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.LEFT_CLICK_BLOCK) {
-            return;
-        }
+        if(!event.hasBlock()) return;
+
         Block clicked = event.getClickedBlock();
         if (clicked == null || clicked.getWorld() == null) {
             return;
