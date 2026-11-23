@@ -55,6 +55,7 @@ public final class DialogComponentUtils {
             Map.entry("compass", "items:item/compass_20"),
             Map.entry("barrier", "items:item/barrier"),
             Map.entry("crossbow", "items:item/crossbow_arrow"),
+            Map.entry("tipped_arrow", "items:item/spectral_arrow"),
             Map.entry("ochre_froglight", "blocks:block/ochre_froglight_side"),
             Map.entry("pearlescent_froglight", "blocks:block/pearlescent_froglight_side"),
             Map.entry("verdant_froglight", "blocks:block/verdant_froglight_side"),
@@ -62,11 +63,12 @@ public final class DialogComponentUtils {
             Map.entry("reinforced_deepslate", "blocks:block/reinforced_deepslate_side"),
             Map.entry("copper_chest", "blocks:block/copper_block"),
             Map.entry("chest", "blocks:block/oak_planks"),
+            Map.entry("trapped_chest", "blocks:block/tripwire_hook"),
             Map.entry("anvil", "blocks:block/anvil_top"),
             Map.entry("chipped_anvil", "blocks:block/chipped_anvil_top"),
             Map.entry("damaged_anvil", "blocks:block/damaged_anvil_top"),
-            Map.entry("sculk_sensor", "blocks:block/sculk_sensor_side"),
-            Map.entry("dried_kelp", "blocks:block/dried_kelp_top"),
+            Map.entry("sculk_sensor", "blocks:block/sculk_sensor_top"),
+            Map.entry("dried_kelp_block", "blocks:block/dried_kelp_top"),
             Map.entry("zombie_head", "items:item/zombie_spawn_egg"),
             Map.entry("creeper_head", "items:item/creeper_spawn_egg"),
             Map.entry("piglin_head", "items:item/piglin_spawn_egg"),
@@ -74,7 +76,7 @@ public final class DialogComponentUtils {
             Map.entry("player_head", "items:item/skull_banner_pattern"),
             Map.entry("ender_chest", "items:item/ender_eye"),
             Map.entry("pale_oak_stairs", "blocks:block/pale_oak_planks"),
-            Map.entry("smooth_red_sandstone_stairs", "blocks:block/red_standstone_top"),
+            Map.entry("smooth_red_sandstone_stairs", "blocks:block/red_sandstone_top"),
             Map.entry("smooth_sandstone_stairs", "blocks:block/standstone_top"),
             Map.entry("flowering_azalea", "blocks:block/flowering_azalea_top"),
                         Map.entry("white_shulker_box", "blocks:block/white_shulker_box"),
@@ -95,6 +97,11 @@ public final class DialogComponentUtils {
                         Map.entry("black_shulker_box", "blocks:block/black_shulker_box"),
                         Map.entry("shulker_box", "blocks:block/shulker_box"),
             Map.entry("pumpkin", "blocks:block/pumpkin_side"),
+            Map.entry("jigsaw", "blocks:block/jigsaw"),
+            Map.entry("command_block", "blocks:block/command_block_side"),
+            Map.entry("repeating_command_block", "blocks:block/repeating_command_block_side"),
+            Map.entry("chain_command_block", "blocks:block/chain_command_block_side"),
+            Map.entry("test_block", "blocks:block/test_block_start"),
             Map.entry("melon", "blocks:block/melon_side"),
             Map.entry("daylight_detector", "blocks:block/daylight_detector_top"),
             Map.entry("respawn_anchor", "blocks:block/respawn_anchor_top"),
@@ -373,6 +380,13 @@ public final class DialogComponentUtils {
             return override;
         }
 
+        if (isCopperChestKey(key)) {
+            String derived = resolveDerivedBlockTexture(key);
+            if (derived != null) {
+                return "blocks:block/" + derived;
+            }
+        }
+
         // 2. Itens que não são blocos (espadas, maçãs, etc.)
         if (!material.isBlock()) {
             return "items:item/" + key;
@@ -414,9 +428,23 @@ public final class DialogComponentUtils {
         };
     }
 
+    private static boolean isCopperChestKey(String key) {
+        return key != null && (key.equals("copper_chest") || key.endsWith("_copper_chest"));
+    }
+
     private static String resolveDerivedBlockTexture(String key) {
         if (key.endsWith("_stairs")) {
             return resolveBaseBlockTexture(key.substring(0, key.length() - "_stairs".length()));
+        }
+        if (isCopperChestKey(key)) {
+            String base = key.substring(0, key.length() - "_chest".length());
+            if (base.startsWith("waxed_")) {
+                base = base.substring("waxed_".length());
+            }
+            if ("copper".equals(base)) {
+                return resolveBaseBlockTexture("copper_block");
+            }
+            return resolveBaseBlockTexture(base);
         }
         if (key.endsWith("_slab")) {
             return resolveBaseBlockTexture(key.substring(0, key.length() - "_slab".length()));
