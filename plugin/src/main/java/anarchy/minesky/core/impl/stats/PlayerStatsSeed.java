@@ -46,9 +46,6 @@ public final class PlayerStatsSeed {
     private static int totalStatistic(Player player, Statistic statistic, Iterable<Material> materials) {
         int total = 0;
         for (Material material : materials) {
-            if (material.isLegacy()) {
-                continue;
-            }
             try {
                 total += player.getStatistic(statistic, material);
             } catch (Throwable ignored) {

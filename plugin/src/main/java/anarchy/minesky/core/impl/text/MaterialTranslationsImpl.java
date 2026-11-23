@@ -4,6 +4,7 @@ import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
@@ -24,8 +25,10 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
 
     private final Plugin plugin;
     private Map<String, String> translationTable = Map.of();
-    private final Map<Material, String> materialPortugueseCache = new EnumMap<>(Material.class);
-    private final Map<EntityType, String> entityPortugueseCache = new EnumMap<>(EntityType.class);
+    private volatile Map<Material, String> materialPortugueseCache = Map.of();
+    private volatile Map<Material, String> materialEnglishCache = Map.of();
+    private volatile Map<EntityType, String> entityPortugueseCache = Map.of();
+    private volatile Map<EntityType, String> entityEnglishCache = Map.of();
 
     public MaterialTranslationsImpl(Plugin plugin) {
         this.plugin = plugin;
@@ -43,9 +46,26 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
 
     @Override
     public void reload() {
-        materialPortugueseCache.clear();
-        entityPortugueseCache.clear();
         translationTable = loadTranslations(plugin);
+        Map<Material, String> portugueseMaterials = new EnumMap<>(Material.class);
+        Map<Material, String> englishMaterials = new EnumMap<>(Material.class);
+        for (Material material : Registry.MATERIAL) {
+            if (material.isAir()) {
+                continue;
+            }
+            portugueseMaterials.put(material, resolveMaterialPortugueseName(material));
+            englishMaterials.put(material, formatEnglishName(material));
+        }
+        Map<EntityType, String> portugueseEntities = new EnumMap<>(EntityType.class);
+        Map<EntityType, String> englishEntities = new EnumMap<>(EntityType.class);
+        for (EntityType entityType : EntityType.values()) {
+            portugueseEntities.put(entityType, resolveEntityPortugueseName(entityType));
+            englishEntities.put(entityType, formatEnglishName(entityType));
+        }
+        materialPortugueseCache = portugueseMaterials;
+        materialEnglishCache = englishMaterials;
+        entityPortugueseCache = portugueseEntities;
+        entityEnglishCache = englishEntities;
     }
 
     @Override
@@ -53,7 +73,8 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
         if (material == null || material.isAir()) {
             return "";
         }
-        return materialPortugueseCache.computeIfAbsent(material, this::resolveMaterialPortugueseName);
+        String cached = materialPortugueseCache.get(material);
+        return cached != null ? cached : "";
     }
 
     @Override
@@ -61,23 +82,29 @@ public final class MaterialTranslationsImpl implements MaterialTranslationsAPI {
         if (entityType == null) {
             return "";
         }
-        return entityPortugueseCache.computeIfAbsent(entityType, this::resolveEntityPortugueseName);
+        String cached = entityPortugueseCache.get(entityType);
+        return cached != null ? cached : "";
     }
 
     @Override
     public String getEnglishName(Material material) {
-        return formatEnglishName(material);
+        if (material == null) {
+            return "";
+        }
+        String cached = materialEnglishCache.get(material);
+        return cached != null ? cached : formatEnglishName(material);
     }
 
     @Override
     public String getEnglishName(EntityType entityType) {
-        return formatEnglishName(entityType);
+        if (entityType == null) {
+            return "";
+        }
+        String cached = entityEnglishCache.get(entityType);
+        return cached != null ? cached : formatEnglishName(entityType);
     }
 
     private String resolveMaterialPortugueseName(Material material) {
-        if (material.isLegacy()) {
-            return formatEnglishName(material);
-        }
         if (!translationTable.isEmpty()) {
             String key;
             try {

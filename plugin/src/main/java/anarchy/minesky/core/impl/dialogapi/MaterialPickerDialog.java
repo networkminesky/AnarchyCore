@@ -6,25 +6,26 @@ import anarchy.minesky.core.api.dialogapi.MineSkyDialog;
 import anarchy.minesky.core.api.dialogapi.inputs.TextInput;
 import anarchy.minesky.core.api.text.DialogComponentUtils;
 import anarchy.minesky.core.api.text.MaterialTranslationsAPI;
-import anarchy.minesky.core.impl.text.MaterialTranslationsImpl;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.entity.Player;
 
 import java.text.Normalizer;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 public final class MaterialPickerDialog {
 
     private static final String INPUT_QUERY = "query";
     private static final int MAX_RESULTS = 48;
     static final String PERMISSION_OPERATIVE = "anarchycore.materialpicker.operative";
+    private static final Pattern DIACRITICS = Pattern.compile("\\p{M}");
 
     private final MaterialTranslationsAPI translations;
     private final MaterialSearch searchIndex;
@@ -79,7 +80,7 @@ public final class MaterialPickerDialog {
     }
 
     private void showResults(Player player, Component title, String query, Consumer<Material> onSelected) {
-        List<Material> matches = searchIndex.search(query, MAX_RESULTS, player);
+        List<MaterialSearch.MaterialEntry> matches = searchIndex.search(query, MAX_RESULTS, player);
         if (matches.isEmpty()) {
             openSearchForm(player, title, query, onSelected);
             return;
@@ -89,11 +90,11 @@ public final class MaterialPickerDialog {
                 .body(Component.text("Resultados: " + matches.size() + (matches.size() >= MAX_RESULTS ? "+" : "")))
                 .multiActionColumns(2);
 
-        for (Material material : matches) {
+        for (MaterialSearch.MaterialEntry entry : matches) {
             builder.button(DialogButton.builder()
-                    .label(materialButtonLabel(material))
+                    .label(entry.buttonLabel)
                     .width(240)
-                    .onClick(p -> onSelected.accept(material))
+                    .onClick(p -> onSelected.accept(entry.material))
                     .build());
         }
 
@@ -104,23 +105,6 @@ public final class MaterialPickerDialog {
                 .build());
 
         builder.show(player);
-    }
-
-    Component materialButtonLabel(Material material) {
-        String displayName = searchIndex.getDisplayName(material);
-        String english = translations.getEnglishName(material);
-
-        Component label = DialogComponentUtils.materialIconComponent(material)
-                .append(Component.space())
-                .append(Component.text(displayName));
-
-        if (!displayName.equalsIgnoreCase(english)) {
-            label = label.hoverEvent(HoverEvent.showText(
-                    Component.text(english, NamedTextColor.GRAY)
-            ));
-        }
-
-        return label;
     }
 
     static boolean isOperativeMaterial(Material material) {
@@ -140,32 +124,25 @@ public final class MaterialPickerDialog {
         };
     }
 
-    private static boolean canViewMaterial(Player player, Material material) {
-        return !isOperativeMaterial(material) || player.hasPermission(PERMISSION_OPERATIVE);
-    }
-
     static final class MaterialSearch {
 
-        private final List<MaterialEntry> entries = new ArrayList<>();
-        private final Map<Material, String> displayNameCache = new EnumMap<>(Material.class);
+        private volatile List<MaterialEntry> entries = List.of();
 
         MaterialSearch(MaterialTranslationsAPI translations) {
             reload(translations);
         }
 
         void reload(MaterialTranslationsAPI translations) {
-            entries.clear();
-            displayNameCache.clear();
+            List<MaterialEntry> next = new ArrayList<>();
 
-            for (Material material : Material.values()) {
+            for (Material material : Registry.MATERIAL) {
                 // Só itens obtíveis no jogo (mesmo critério de WarpStorage.parseMaterial).
                 // Blocos sem forma de item (bolo com vela, fogo, placas de parede, etc.) não devem aparecer.
-                if (material.isLegacy() || material.isAir() || !material.isItem()) {
+                if (material.isAir() || !material.isItem()) {
                     continue;
                 }
                 String localized = translations.getPortugueseName(material);
                 String english = translations.getEnglishName(material);
-                displayNameCache.put(material, localized);
 
                 String normLoc = stripAccents(localized);
                 String normEng = stripAccents(english);
@@ -182,30 +159,68 @@ public final class MaterialPickerDialog {
                 String haystack = (normLoc + " " + rawLocLower + " " + normEng + " " + rawName + " " + key).trim();
                 String[] words = (normLoc + " " + normEng).split("\\s+");
 
-                entries.add(new MaterialEntry(material, localized, english, normLoc, haystack, words));
+                next.add(new MaterialEntry(
+                        material,
+                        localized,
+                        english,
+                        normLoc,
+                        haystack,
+                        words,
+                        isOperativeMaterial(material),
+                        buttonLabel(material, localized, english)));
             }
+            entries = List.copyOf(next);
         }
 
-        String getDisplayName(Material material) {
-            return displayNameCache.getOrDefault(material, MaterialTranslationsImpl.formatEnglishName(material));
-        }
-
-        List<Material> search(String rawQuery, int limit, Player player) {
-            if (rawQuery == null || rawQuery.isBlank()) {
+        List<MaterialEntry> search(String rawQuery, int limit, Player player) {
+            if (rawQuery == null || rawQuery.isBlank() || limit <= 0) {
                 return List.of();
             }
             String normalizedQuery = stripAccents(rawQuery.trim());
             String[] tokens = normalizedQuery.split("\\s+");
+            boolean allowOperative = player.hasPermission(PERMISSION_OPERATIVE);
+            List<MaterialEntry> snapshot = entries;
 
-            return entries.stream()
-                    .filter(entry -> matchesAllTokens(entry, tokens))
-                    .filter(entry -> canViewMaterial(player, entry.material))
-                    .sorted(Comparator
-                            .<MaterialEntry>comparingInt(e -> matchScore(e, normalizedQuery))
-                            .thenComparing(e -> e.localizedName, String.CASE_INSENSITIVE_ORDER))
-                    .limit(limit)
-                    .map(e -> e.material)
-                    .collect(Collectors.toList());
+            PriorityQueue<Ranked> best = new PriorityQueue<>(
+                    Math.min(limit, 64),
+                    (left, right) -> compareRank(right, left));
+
+            for (MaterialEntry entry : snapshot) {
+                if (entry.operative && !allowOperative) {
+                    continue;
+                }
+                if (!matchesAllTokens(entry, tokens)) {
+                    continue;
+                }
+                Ranked candidate = new Ranked(entry, matchScore(entry, normalizedQuery));
+                if (best.size() < limit) {
+                    best.add(candidate);
+                    continue;
+                }
+                Ranked worst = best.peek();
+                if (worst != null && compareRank(candidate, worst) < 0) {
+                    best.poll();
+                    best.add(candidate);
+                }
+            }
+            if (best.isEmpty()) {
+                return List.of();
+            }
+            List<Ranked> ranked = new ArrayList<>(best);
+            ranked.sort(MaterialSearch::compareRank);
+            List<MaterialEntry> result = new ArrayList<>(ranked.size());
+            for (Ranked rankedEntry : ranked) {
+                result.add(rankedEntry.entry);
+            }
+            return result;
+        }
+
+        private static int compareRank(Ranked left, Ranked right) {
+            int score = Integer.compare(left.score, right.score);
+            if (score != 0) {
+                return score;
+            }
+            return String.CASE_INSENSITIVE_ORDER.compare(left.entry.localizedName, right.entry.localizedName);
         }
 
         private static boolean matchesAllTokens(MaterialEntry entry, String[] tokens) {
@@ -238,26 +253,52 @@ public final class MaterialPickerDialog {
                 return "";
             }
             String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
-            return normalized.replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
+            return DIACRITICS.matcher(normalized).replaceAll("").toLowerCase(Locale.ROOT);
         }
-    }
 
-    private static final class MaterialEntry {
-        final Material material;
-        final String localizedName;
-        final String englishName;
-        final String normalizedLocalized;
-        final String normalizedHaystack;
-        final String[] words;
+        private static Component buttonLabel(Material material, String displayName, String english) {
+            Component label = DialogComponentUtils.materialIconComponent(material)
+                    .append(Component.space())
+                    .append(Component.text(displayName));
+            if (!displayName.equalsIgnoreCase(english)) {
+                label = label.hoverEvent(HoverEvent.showText(
+                        Component.text(english, NamedTextColor.GRAY)));
+            }
+            return label;
+        }
 
-        MaterialEntry(Material material, String localizedName, String englishName,
-                      String normalizedLocalized, String normalizedHaystack, String[] words) {
-            this.material = material;
-            this.localizedName = localizedName;
-            this.englishName = englishName;
-            this.normalizedLocalized = normalizedLocalized;
-            this.normalizedHaystack = normalizedHaystack;
-            this.words = words;
+        private static final class Ranked {
+            final MaterialEntry entry;
+            final int score;
+
+            Ranked(MaterialEntry entry, int score) {
+                this.entry = entry;
+                this.score = score;
+            }
+        }
+
+        static final class MaterialEntry {
+            final Material material;
+            final String localizedName;
+            final String englishName;
+            final String normalizedLocalized;
+            final String normalizedHaystack;
+            final String[] words;
+            final boolean operative;
+            final Component buttonLabel;
+
+            MaterialEntry(Material material, String localizedName, String englishName,
+                          String normalizedLocalized, String normalizedHaystack, String[] words,
+                          boolean operative, Component buttonLabel) {
+                this.material = material;
+                this.localizedName = localizedName;
+                this.englishName = englishName;
+                this.normalizedLocalized = normalizedLocalized;
+                this.normalizedHaystack = normalizedHaystack;
+                this.words = words;
+                this.operative = operative;
+                this.buttonLabel = buttonLabel;
+            }
         }
     }
 }

@@ -6,6 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
@@ -120,7 +122,7 @@ public final class VanillaStatsFileReader {
         int total = 0;
         for (Map.Entry<String, JsonElement> entry : used.entrySet()) {
             Material material = materialKey(entry.getKey());
-            if (material == null || material.isLegacy() || !material.isBlock()) {
+            if (material == null || !material.isBlock()) {
                 continue;
             }
             try {
@@ -140,6 +142,10 @@ public final class VanillaStatsFileReader {
         if (colon >= 0) {
             id = namespaced.substring(colon + 1);
         }
-        return Material.matchMaterial(id.toUpperCase(Locale.ROOT));
+        try {
+            return Registry.MATERIAL.get(NamespacedKey.minecraft(id.toLowerCase(Locale.ROOT)));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 }

@@ -16,6 +16,7 @@ import org.bukkit.Material;
 import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +54,7 @@ public final class DialogComponentUtils {
             Map.entry("hay_block", "blocks:block/hay_block_side"),
             Map.entry("bone_block", "blocks:block/bone_block_side"),
             Map.entry("compass", "items:item/compass_20"),
+            Map.entry("recovery_compass", "items:item/recovery_compass_20"),
             Map.entry("barrier", "items:item/barrier"),
             Map.entry("crossbow", "items:item/crossbow_arrow"),
             Map.entry("tipped_arrow", "items:item/spectral_arrow"),
@@ -67,18 +69,37 @@ public final class DialogComponentUtils {
             Map.entry("anvil", "blocks:block/anvil_top"),
             Map.entry("chipped_anvil", "blocks:block/chipped_anvil_top"),
             Map.entry("damaged_anvil", "blocks:block/damaged_anvil_top"),
-            Map.entry("sculk_sensor", "blocks:block/sculk_sensor_top"),
+            Map.entry("jukebox", "blocks:block/jukebox_top"),
+            Map.entry("sculk_sensor", "blocks:block/sculk_sensor_side"),
+            Map.entry("sculk_shrieker", "blocks:block/sculk_shrieker_side"),
             Map.entry("dried_kelp_block", "blocks:block/dried_kelp_top"),
+            Map.entry("honey_block", "blocks:block/honey_block_side"),
             Map.entry("zombie_head", "items:item/zombie_spawn_egg"),
             Map.entry("creeper_head", "items:item/creeper_spawn_egg"),
+            Map.entry("skeleton_skull", "items:item/skeleton_spawn_egg"),
+            Map.entry("wither_skeleton_skull", "items:item/wither_skeleton_spawn_egg"),
             Map.entry("piglin_head", "items:item/piglin_spawn_egg"),
             Map.entry("dragon_head", "items:item/ender_dragon_spawn_egg"),
             Map.entry("player_head", "items:item/skull_banner_pattern"),
             Map.entry("ender_chest", "items:item/ender_eye"),
             Map.entry("pale_oak_stairs", "blocks:block/pale_oak_planks"),
+            Map.entry("magma_block", "blocks:block/magma"),
+            Map.entry("quartz_block", "blocks:block/quartz_block_side"),
+            Map.entry("quartz_pillar", "blocks:block/quartz_pillar_side"),
+            Map.entry("sculk_catalyst", "blocks:block/sculk_catalyst_side"),
+            Map.entry("smooth_quartz", "blocks:block/quartz_block_top"),
+            Map.entry("muddy_mangrove_roots", "blocks:block/muddy_mangrove_roots_side"),
+            Map.entry("suspicious_gravel", "blocks:block/suspicious_gravel_3"),
+            Map.entry("suspicious_sand", "blocks:block/suspicious_sand_3"),
+            Map.entry("snow_block", "blocks:block/snow"),
+            Map.entry("smooth_red_sandstone", "blocks:block/red_sandstone_top"),
+            Map.entry("smooth_sandstone", "blocks:block/sandstone_top"),
             Map.entry("smooth_red_sandstone_stairs", "blocks:block/red_sandstone_top"),
-            Map.entry("smooth_sandstone_stairs", "blocks:block/standstone_top"),
+            Map.entry("smooth_red_sandstone_slab", "blocks:block/red_sandstone_top"),
+            Map.entry("smooth_sandstone_stairs", "blocks:block/sandstone_top"),
+            Map.entry("smooth_sandstone_slab", "blocks:block/sandstone_top"),
             Map.entry("flowering_azalea", "blocks:block/flowering_azalea_top"),
+            Map.entry("azalea", "blocks:block/azalea_top"),
                         Map.entry("white_shulker_box", "blocks:block/white_shulker_box"),
                         Map.entry("orange_shulker_box", "blocks:block/orange_shulker_box"),
                         Map.entry("magenta_shulker_box", "blocks:block/magenta_shulker_box"),
@@ -97,11 +118,13 @@ public final class DialogComponentUtils {
                         Map.entry("black_shulker_box", "blocks:block/black_shulker_box"),
                         Map.entry("shulker_box", "blocks:block/shulker_box"),
             Map.entry("pumpkin", "blocks:block/pumpkin_side"),
-            Map.entry("jigsaw", "blocks:block/jigsaw"),
+            Map.entry("jigsaw", "blocks:block/jigsaw_top"),
             Map.entry("command_block", "blocks:block/command_block_side"),
             Map.entry("repeating_command_block", "blocks:block/repeating_command_block_side"),
             Map.entry("chain_command_block", "blocks:block/chain_command_block_side"),
             Map.entry("test_block", "blocks:block/test_block_start"),
+            Map.entry("dried_ghast", "blocks:block/dried_ghast_hydration_0_north"),
+            Map.entry("sunflower", "blocks:block/sunflower_front"),
             Map.entry("melon", "blocks:block/melon_side"),
             Map.entry("daylight_detector", "blocks:block/daylight_detector_top"),
             Map.entry("respawn_anchor", "blocks:block/respawn_anchor_top"),
@@ -126,6 +149,11 @@ public final class DialogComponentUtils {
             Map.entry("vault", "blocks:block/vault_front_off"),
             Map.entry("trial_spawner", "blocks:block/trial_spawner_top_inactive")
     );
+
+    /** Sprite já desserializado, compartilhado entre materiais com a mesma textura. */
+    private static final ConcurrentHashMap<String, Component> SPRITE_COMPONENTS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Material, Component> MATERIAL_ICONS = new ConcurrentHashMap<>();
+    private static final Component MISSING_SPRITE = Component.empty();
 
     private DialogComponentUtils() {}
 
@@ -355,16 +383,19 @@ public final class DialogComponentUtils {
      * Resolve corretamente os atlas de itens e blocos vanilla sem exibir texturas ausentes.
      */
     public static Component materialIconComponent(Material material) {
-        if (material == null || material.isAir() || material.isLegacy()) {
+        if (material == null || material.isAir()) {
             return Component.empty();
         }
-        String spritePath = resolveMaterialSpritePath(material);
-        Component sprite = deserializeSprite(spritePath);
+        return MATERIAL_ICONS.computeIfAbsent(material, DialogComponentUtils::buildMaterialIcon);
+    }
+
+    private static Component buildMaterialIcon(Material material) {
+        Component sprite = deserializeSprite(resolveMaterialSpritePath(material));
         return sprite != null ? sprite : Component.empty();
     }
 
     public static String resolveMaterialSpritePath(Material material) {
-        if (material == null || material.isAir() || material.isLegacy()) {
+        if (material == null || material.isAir()) {
             return "";
         }
         String key;
@@ -380,11 +411,14 @@ public final class DialogComponentUtils {
             return override;
         }
 
-        if (isCopperChestKey(key)) {
-            String derived = resolveDerivedBlockTexture(key);
-            if (derived != null) {
-                return "blocks:block/" + derived;
-            }
+        String bedBannerSprite = resolveBedBannerSpritePath(key);
+        if (bedBannerSprite != null) {
+            return bedBannerSprite;
+        }
+
+        String derived = resolveDerivedBlockTexture(key);
+        if (derived != null) {
+            return "blocks:block/" + derived;
         }
 
         // 2. Itens que não são blocos (espadas, maçãs, etc.)
@@ -397,13 +431,7 @@ public final class DialogComponentUtils {
             return "items:item/" + key;
         }
 
-        // 4. Blocos derivados que usam textura do bloco base (escadas, lajes, cercas)
-        String derived = resolveDerivedBlockTexture(key);
-        if (derived != null) {
-            return "blocks:block/" + derived;
-        }
-
-        // 5. Blocos comuns (mudas/saplings, pedras, flores, etc. que ficam no atlas de blocos)
+        // 4. Blocos comuns (mudas/saplings, pedras, flores, etc. que ficam no atlas de blocos)
         return "blocks:block/" + key;
     }
 
@@ -411,7 +439,6 @@ public final class DialogComponentUtils {
         if (key.endsWith("_door")
                 || key.endsWith("_sign")
                 || key.endsWith("_hanging_sign")
-                || key.endsWith("_bed")
                 || key.endsWith("_candle")
                 || key.endsWith("_shulker_box")) {
             return true;
@@ -432,7 +459,38 @@ public final class DialogComponentUtils {
         return key != null && (key.equals("copper_chest") || key.endsWith("_copper_chest"));
     }
 
+    /**
+     * Camas e estandartes não têm {@code items:item/{key}} no atlas; usam textura de bloco ou corante.
+     */
+    private static String resolveBedBannerSpritePath(String key) {
+        if (key == null) {
+            return null;
+        }
+        if (key.endsWith("_bed")) {
+            String color = key.substring(0, key.length() - "_bed".length());
+            return "blocks:block/" + color + "_bed_head_up";
+        }
+        if (key.endsWith("_banner")) {
+            String dyeKey = key.substring(0, key.length() - "_banner".length()) + "_dye";
+            return "items:item/" + dyeKey;
+        }
+        return null;
+    }
+
     private static String resolveDerivedBlockTexture(String key) {
+        if (key.endsWith("_glass_pane")) {
+            if ("glass_pane".equals(key)) {
+                return "glass_pane_top";
+            }
+            return key + "_top";
+        }
+        if (key.endsWith("_carpet")) {
+            return switch (key) {
+                case "moss_carpet" -> "moss_block";
+                case "pale_moss_carpet" -> "pale_moss_carpet";
+                default -> key.substring(0, key.length() - "_carpet".length()) + "_wool";
+            };
+        }
         if (key.endsWith("_stairs")) {
             return resolveBaseBlockTexture(key.substring(0, key.length() - "_stairs".length()));
         }
@@ -458,6 +516,17 @@ public final class DialogComponentUtils {
         if (key.endsWith("_wall")) {
             return resolveBaseBlockTexture(key.substring(0, key.length() - "_wall".length()));
         }
+        if (key.endsWith("_hyphae")) {
+            return resolveBaseBlockTexture(key.replace("_hyphae", "_stem").trim());
+        }
+        if (key.endsWith("_golem_statue")) {
+            if(key.equals("copper_golem_statue"))
+                return resolveBaseBlockTexture("copper_block");
+            return resolveBaseBlockTexture(key.substring(0, key.length() - "_golem_statue".length()));
+        }
+        if (key.endsWith("_wood")) {
+            return resolveBaseBlockTexture(key.replace("_wood", "_log").trim());
+        }
         if (key.endsWith("_button")) {
             return resolveBaseBlockTexture(key.substring(0, key.length() - "_button".length()));
         }
@@ -477,7 +546,9 @@ public final class DialogComponentUtils {
         if (base == null || base.isEmpty()) return "stone";
         return switch (base) {
             case "oak", "spruce", "birch", "jungle", "acacia", "dark_oak",
-                 "mangrove", "cherry", "bamboo", "crimson", "warped" -> base + "_planks";
+                 "mangrove", "cherry", "bamboo", "crimson", "warped", "pale_oak" -> base + "_planks";
+            case "resin_brick" -> "resin_bricks";
+            case "tuff_brick" -> "tuff_bricks";
             case "stone_brick" -> "stone_bricks";
             case "mossy_stone_brick" -> "mossy_stone_bricks";
             case "nether_brick" -> "nether_bricks";
@@ -502,11 +573,20 @@ public final class DialogComponentUtils {
         if (atlasPath == null || atlasPath.isEmpty()) {
             return null;
         }
-        try {
-            return MiniMessage.miniMessage().deserialize("<sprite:" + atlasPath + ">");
-        } catch (Exception ignored) {
-            return null;
+        Component cached = SPRITE_COMPONENTS.get(atlasPath);
+        if (cached != null) {
+            return cached == MISSING_SPRITE ? null : cached;
         }
+        Component parsed;
+        try {
+            parsed = MiniMessage.miniMessage().deserialize("<sprite:" + atlasPath + ">");
+        } catch (Exception ignored) {
+            parsed = null;
+        }
+        Component stored = parsed != null ? parsed : MISSING_SPRITE;
+        Component existing = SPRITE_COMPONENTS.putIfAbsent(atlasPath, stored);
+        Component result = existing != null ? existing : stored;
+        return result == MISSING_SPRITE ? null : result;
     }
 
     public static String toBedrock(Component component) {

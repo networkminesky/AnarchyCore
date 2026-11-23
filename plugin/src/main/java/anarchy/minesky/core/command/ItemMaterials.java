@@ -2,6 +2,7 @@ package anarchy.minesky.core.command;
 
 import anarchy.minesky.core.api.MineSkyAPI;
 import org.bukkit.Material;
+import org.bukkit.Registry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,11 +23,10 @@ final class ItemMaterials {
     private static final Map<String, Material> EXACT;
 
     static {
-        Material[] values = Material.values();
-        List<Entry> entries = new ArrayList<>(values.length);
-        Map<String, Material> exact = HashMap.newHashMap(values.length * 2);
-        for (Material material : values) {
-            if (material.isLegacy() || material.isAir() || !material.isItem()) {
+        List<Entry> entries = new ArrayList<>();
+        Map<String, Material> exact = HashMap.newHashMap(512);
+        for (Material material : Registry.MATERIAL) {
+            if (material.isAir() || !material.isItem()) {
                 continue;
             }
             String name = material.name().toLowerCase(Locale.ROOT);

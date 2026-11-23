@@ -1,6 +1,7 @@
 package anarchy.minesky.core.impl.stats;
 
 import org.bukkit.Material;
+import org.bukkit.Registry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,10 +48,7 @@ public final class PlayerStatsMaterialIndex {
 
     private static List<Material> buildMineList() {
         List<Material> out = new ArrayList<>();
-        for (Material material : Material.values()) {
-            if (material.isLegacy()) {
-                continue;
-            }
+        for (Material material : Registry.MATERIAL) {
             if (!material.isBlock()) {
                 continue;
             }
@@ -61,10 +59,7 @@ public final class PlayerStatsMaterialIndex {
 
     private static List<Material> buildUseList() {
         List<Material> out = new ArrayList<>();
-        for (Material material : Material.values()) {
-            if (material.isLegacy()) {
-                continue;
-            }
+        for (Material material : Registry.MATERIAL) {
             if (!material.isBlock() || !material.isItem()) {
                 continue;
             }
